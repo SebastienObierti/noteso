@@ -1,0 +1,3091 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Noteso">
+    <meta name="description" content="Dashboard analytics pour SaaS">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%233b82f6' rx='20' width='100' height='100'/><text x='50' y='65' text-anchor='middle' fill='white' font-size='50'>N</text></svg>">
+    <title>Noteso - Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111113;
+            --bg-tertiary: #18181b;
+            --bg-card: #141416;
+            --border: #27272a;
+            --border-hover: #3f3f46;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-orange: #f97316;
+            --accent-purple: #a855f7;
+            --accent-pink: #ec4899;
+            --accent-cyan: #06b6d4;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+        }
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; min-width: 300px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); animation: slideIn 0.3s ease; }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        .toast.info { border-left: 3px solid var(--accent-blue); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1a2e 100%); }
+        .login-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 48px; width: 100%; max-width: 420px; }
+        .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; justify-content: center; }
+        .login-logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: white; }
+        .login-title { text-align: center; font-size: 20px; margin-bottom: 8px; }
+        .login-subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 32px; font-size: 14px; }
+
+        .app-container { display: none; min-height: 100vh; }
+        .app-container.active { display: flex; }
+
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; transition: transform 0.3s; }
+        .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; padding: 0 8px; }
+        .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; }
+        .logo-text { font-size: 16px; font-weight: 700; }
+
+        .connection-status { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 24px; font-size: 12px; }
+        .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+        .connection-status.connected .connection-dot { background: var(--success); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .nav-section { margin-bottom: 24px; }
+        .nav-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 12px; padding-left: 12px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; margin-bottom: 2px; font-size: 14px; }
+        .nav-item:hover, .nav-item.active { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item .badge { margin-left: auto; background: var(--accent-blue); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; }
+
+        .sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+        .user-card { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 10px; cursor: pointer; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #06b6d4); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; color: white; }
+        .user-name { font-weight: 600; font-size: 13px; }
+        .user-role { font-size: 11px; color: var(--text-muted); }
+
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; min-height: 100vh; }
+
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+        .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+        .header p { color: var(--text-secondary); font-size: 14px; }
+        .header-right { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--bg-card); border-color: var(--border-hover); }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.2s; }
+        .stat-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+        .stat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .stat-icon.blue { background: rgba(59, 130, 246, 0.15); }
+        .stat-icon.green { background: rgba(34, 197, 94, 0.15); }
+        .stat-icon.orange { background: rgba(249, 115, 22, 0.15); }
+        .stat-icon.purple { background: rgba(168, 85, 247, 0.15); }
+        .stat-trend { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 500; }
+        .stat-trend.up { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .stat-trend.down { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+        .stat-label { color: var(--text-secondary); font-size: 13px; }
+        .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .section-title { font-size: 18px; font-weight: 600; }
+
+        .sites-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .site-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; }
+        .site-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+        .site-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .site-info { display: flex; gap: 12px; align-items: center; }
+        .site-favicon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; }
+        .site-name { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+        .site-url { font-size: 12px; color: var(--text-muted); }
+        .site-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+        .site-status.online { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .site-status.offline { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .site-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .metric { text-align: center; }
+        .metric-value { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+        .metric-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+
+        .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 32px; }
+        .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+        .chart-title { font-size: 15px; font-weight: 600; }
+        .chart-tabs { display: flex; gap: 4px; background: var(--bg-tertiary); padding: 4px; border-radius: 6px; }
+        .chart-tab { padding: 6px 12px; border-radius: 4px; font-size: 11px; color: var(--text-secondary); cursor: pointer; background: transparent; border: none; font-family: inherit; transition: all 0.2s; }
+        .chart-tab:hover { color: var(--text-primary); }
+        .chart-tab.active { background: var(--bg-card); color: var(--text-primary); }
+        .chart-container { height: 280px; position: relative; }
+
+        .breakdown-list { display: flex; flex-direction: column; gap: 14px; }
+        .breakdown-item { display: flex; align-items: center; gap: 12px; }
+        .breakdown-color { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+        .breakdown-info { flex: 1; min-width: 0; }
+        .breakdown-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .breakdown-bar { height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; }
+        .breakdown-progress { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .breakdown-value { font-size: 13px; font-weight: 600; white-space: nowrap; }
+
+        .activity-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .activity-list { display: flex; flex-direction: column; max-height: 400px; overflow-y: auto; }
+        .activity-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .activity-icon.payment { background: rgba(34, 197, 94, 0.15); }
+        .activity-icon.signup { background: rgba(59, 130, 246, 0.15); }
+        .activity-icon.alert { background: rgba(239, 68, 68, 0.15); }
+        .activity-content { flex: 1; min-width: 0; }
+        .activity-text { font-size: 13px; margin-bottom: 2px; }
+        .activity-meta { display: flex; gap: 10px; font-size: 11px; color: var(--text-muted); }
+        .activity-amount { font-weight: 600; color: var(--success); }
+
+        .table-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; background: var(--bg-tertiary); }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .table-badge { display: inline-flex; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .table-badge.success { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .table-badge.warning { background: rgba(234, 179, 8, 0.15); color: var(--warning); }
+        .table-badge.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .table-badge.info { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 9000; padding: 20px; }
+        .modal-overlay.active { display: flex !important; }
+        .modal { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; animation: modalIn 0.2s ease; }
+        .modal.large { max-width: 600px; }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close { width: 32px; height: 32px; border-radius: 8px; background: var(--bg-tertiary); border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+        .form-input, .form-select { width: 100%; padding: 10px 14px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 13px; font-family: inherit; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent-blue); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+        .color-options { display: flex; gap: 8px; flex-wrap: wrap; }
+        .color-option { width: 32px; height: 32px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+        .color-option:hover { transform: scale(1.1); }
+        .color-option.selected { border-color: white; }
+
+        .settings-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .settings-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 16px; }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-info { flex: 1; }
+        .settings-info h4 { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+        .settings-info p { font-size: 12px; color: var(--text-secondary); }
+
+        .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 24px; transition: all 0.3s; }
+        .toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 2px; top: 2px; background: var(--text-primary); border-radius: 50%; transition: transform 0.3s; }
+        .toggle input:checked + .toggle-slider { background: var(--accent-blue); border-color: var(--accent-blue); }
+        .toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: white; }
+
+        .webhook-card { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .webhook-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .webhook-name { font-weight: 600; font-size: 14px; }
+        .webhook-url { font-size: 12px; color: var(--text-muted); font-family: monospace; margin-bottom: 8px; word-break: break-all; }
+        .webhook-events { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .webhook-event { font-size: 10px; padding: 2px 8px; background: var(--bg-card); border-radius: 4px; color: var(--text-secondary); }
+        .webhook-stats { display: flex; gap: 16px; font-size: 11px; color: var(--text-muted); }
+        .webhook-actions { display: flex; gap: 8px; }
+
+        .notification-channel { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .notification-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .notification-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .notification-icon.slack { background: #4A154B; }
+        .notification-icon.discord { background: #5865F2; }
+        .notification-icon.email { background: var(--accent-blue); }
+
+        .api-info { background: var(--bg-tertiary); border-radius: 10px; padding: 14px; margin-top: 16px; }
+        .api-key-display { display: flex; align-items: center; gap: 8px; background: var(--bg-primary); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; }
+        .api-key-display code { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 16px; color: var(--text-primary); margin-bottom: 8px; }
+
+        .loading { display: flex; align-items: center; justify-content: center; padding: 60px; }
+        .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .realtime-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+        .realtime-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+
+        .filters-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+        .filter-select { padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 13px; }
+
+        .mobile-menu-btn { display: none; position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; color: white; font-size: 24px; cursor: pointer; z-index: 99; box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4); }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+        .mobile-overlay.active { display: block; }
+
+        @media (max-width: 1200px) { .charts-row { grid-template-columns: 1fr; } }
+        @media (max-width: 900px) { .sites-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+            .header { flex-direction: column; }
+            .header-right { width: 100%; justify-content: flex-start; }
+        }
+        
+        /* Search Modal (Cmd+K) */
+        .search-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: none; align-items: flex-start; justify-content: center; padding-top: 15vh; backdrop-filter: blur(4px); }
+        .search-modal.active { display: flex; }
+        .search-container { width: 100%; max-width: 640px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.4); }
+        .search-input-wrapper { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .search-input-wrapper svg { width: 20px; height: 20px; color: var(--text-muted); }
+        .search-input { flex: 1; background: none; border: none; font-size: 16px; color: var(--text-primary); outline: none; }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-shortcut { background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; font-size: 11px; color: var(--text-muted); }
+        .search-results { max-height: 400px; overflow-y: auto; }
+        .search-result { display: flex; align-items: center; gap: 12px; padding: 12px 20px; cursor: pointer; transition: background 0.15s; }
+        .search-result:hover, .search-result.selected { background: var(--bg-tertiary); }
+        .search-result-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .search-result-content { flex: 1; min-width: 0; }
+        .search-result-title { font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-result-subtitle { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-result-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--bg-tertiary); color: var(--text-secondary); }
+        .search-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); }
+        .search-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); }
+        .search-footer span { display: flex; align-items: center; gap: 4px; }
+        .search-footer kbd { background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: inherit; }
+        
+        /* Integration cards */
+        .integration-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: flex; gap: 16px; transition: all 0.2s; }
+        .integration-card:hover { border-color: var(--border-hover); }
+        .integration-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; background: var(--bg-tertiary); }
+        .integration-content { flex: 1; }
+        .integration-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .integration-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+        .integration-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 20px; }
+        .integration-status.connected { background: rgba(34,197,94,0.15); color: var(--success); }
+        .integration-status.disconnected { background: var(--bg-tertiary); color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <!-- Search Modal (Cmd+K) -->
+    <div class="search-modal" id="searchModal" onclick="if(event.target === this) closeSearch()">
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" class="search-input" id="searchInput" placeholder="Rechercher..." oninput="handleSearch(this.value)">
+                <span class="search-shortcut">ESC</span>
+            </div>
+            <div class="search-results" id="searchResults">
+                <div class="search-empty">Tapez pour rechercher des utilisateurs, paiements, sites...</div>
+            </div>
+            <div class="search-footer">
+                <span><kbd>↑</kbd><kbd>↓</kbd> Navigation</span>
+                <span><kbd>↵</kbd> Ouvrir</span>
+                <span><kbd>ESC</kbd> Fermer</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebar()"></div>
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+
+    <!-- Login -->
+    <div class="login-page" id="loginPage">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="login-logo-icon">N</div>
+                <span style="font-size:20px;font-weight:700;">Noteso</span>
+            </div>
+            <h2 class="login-title" id="loginTitle">Connexion</h2>
+            <p class="login-subtitle" id="loginSubtitle">Accédez à votre tableau de bord</p>
+            <!-- Formulaire de connexion -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="loginEmail" placeholder="votre@email.com" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mot de passe</label>
+                    <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+                <button type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" onclick="doLogin()">Se connecter</button>
+                <p style="text-align:center;margin-top:16px;">
+                    <a href="#" onclick="showForgotPassword(); return false;" style="color:var(--accent-blue);font-size:13px;text-decoration:none;">Mot de passe oublié ?</a>
+                </p>
+            </form>
+            
+            <!-- Formulaire mot de passe oublié -->
+            <form id="forgotPasswordForm" style="display:none">
+                <div style="text-align:center;margin-bottom:24px;">
+                    <div style="font-size:48px;margin-bottom:12px;">🔐</div>
+                    <p style="color:var(--text-secondary);font-size:13px;">Entrez votre email pour recevoir un lien de réinitialisation</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="forgotEmail" placeholder="votre@email.com" required>
+                </div>
+                <button type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" onclick="doForgotPassword()">Envoyer le lien</button>
+                <p style="text-align:center;margin-top:16px;">
+                    <a href="#" onclick="showLoginForm(); return false;" style="color:var(--accent-blue);font-size:13px;text-decoration:none;">← Retour à la connexion</a>
+                </p>
+            </form>
+            
+            <!-- Formulaire réinitialisation -->
+            <form id="resetPasswordForm" style="display:none">
+                <div style="text-align:center;margin-bottom:24px;">
+                    <div style="font-size:48px;margin-bottom:12px;">🔑</div>
+                    <p style="color:var(--text-secondary);font-size:13px;">Créez votre nouveau mot de passe</p>
+                </div>
+                <input type="hidden" id="resetToken">
+                <div class="form-group">
+                    <label class="form-label">Nouveau mot de passe</label>
+                    <input type="password" class="form-input" id="resetPassword" placeholder="Min. 8 caractères" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirmer le mot de passe</label>
+                    <input type="password" class="form-input" id="resetConfirmPassword" placeholder="Confirmez le mot de passe" required>
+                </div>
+                <button type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" onclick="doResetPassword()">Réinitialiser</button>
+            </form>
+            
+            <!-- Message de succès -->
+            <div id="emailSentMessage" style="display:none;text-align:center;">
+                <div style="font-size:48px;margin-bottom:16px;">✉️</div>
+                <h3 style="margin-bottom:8px;">Email envoyé !</h3>
+                <p style="color:var(--text-secondary);font-size:13px;margin-bottom:24px;">Si un compte existe avec cette adresse, vous recevrez un lien de réinitialisation.</p>
+                <a href="#" onclick="showLoginForm(); return false;" style="color:var(--accent-blue);font-size:13px;text-decoration:none;">← Retour à la connexion</a>
+            </div>
+            
+            <!-- Formulaire 2FA -->
+            <form id="twoFactorForm" style="display:none">
+                <div style="text-align:center;margin-bottom:24px;">
+                    <div style="font-size:48px;margin-bottom:12px;">🔐</div>
+                    <p style="color:var(--text-secondary);font-size:13px;">Entrez le code de votre application d'authentification</p>
+                </div>
+                <input type="hidden" id="tempToken">
+                <div class="form-group">
+                    <label class="form-label">Code à 6 chiffres</label>
+                    <input type="text" class="form-input" id="twoFactorCode" placeholder="000 000" maxlength="7" style="text-align:center;font-size:24px;letter-spacing:8px" autocomplete="one-time-code">
+                </div>
+                <button type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" onclick="validate2FACode()">Vérifier</button>
+                <p style="text-align:center;margin-top:16px;">
+                    <a href="#" onclick="backToLoginFrom2FA(); return false;" style="color:var(--accent-blue);font-size:13px;text-decoration:none;">← Retour à la connexion</a>
+                </p>
+                <p style="text-align:center;margin-top:12px;font-size:12px;color:var(--text-muted);">
+                    Vous pouvez aussi utiliser un code de secours
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- App -->
+    <div class="app-container" id="appContainer">
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <div class="logo-icon">N</div>
+                <span class="logo-text">Noteso</span>
+            </div>
+            <div class="connection-status" id="connectionStatus">
+                <div class="connection-dot"></div>
+                <span id="connectionText">Connexion...</span>
+            </div>
+            <nav class="nav-section">
+                <div class="nav-label">Principal</div>
+                <div class="nav-item active" data-page="overview">📊 Vue d'ensemble</div>
+                <div class="nav-item" data-page="sites">🌐 Mes Sites</div>
+                <div class="nav-item" data-page="analytics">📈 Statistiques</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-label">Finances</div>
+                <div class="nav-item" data-page="payments">💳 Paiements</div>
+                <div class="nav-item" data-page="subscriptions">🔄 Abonnements</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-label">Automatisation</div>
+                <div class="nav-item" data-page="alerts">🚨 Alertes</div>
+                <div class="nav-item" data-page="integrations">🔌 Intégrations</div>
+                <div class="nav-item" data-page="notifications">🔔 Notifications</div>
+                <div class="nav-item" data-page="webhooks">🔗 Webhooks</div>
+                <div class="nav-item" data-page="reports">📄 Rapports</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-label">Système</div>
+                <div class="nav-item" data-page="team">👥 Équipe</div>
+                <div class="nav-item" data-page="api-keys">🔑 Clés API</div>
+                <div class="nav-item" data-page="monitoring">📡 Monitoring</div>
+                <div class="nav-item" data-page="settings">⚙️ Paramètres</div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-card" onclick="handleLogout()">
+                    <div class="user-avatar" id="userAvatar">AD</div>
+                    <div>
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role" id="userRole">Super Admin</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <main class="main-content" id="mainContent"></main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="addSiteModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Ajouter un site</h3>
+                <button class="modal-close" onclick="closeModal('addSiteModal')">×</button>
+            </div>
+            <form id="addSiteForm" onsubmit="handleAddSite(event)">
+                <div class="form-group">
+                    <label class="form-label">Nom du site</label>
+                    <input type="text" class="form-input" name="name" placeholder="Mon Site" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL</label>
+                    <input type="text" class="form-input" name="url" placeholder="https://monsite.fr" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Couleur</label>
+                    <div class="color-options">
+                        <div class="color-option selected" style="background:#3b82f6" data-color="#3b82f6"></div>
+                        <div class="color-option" style="background:#22c55e" data-color="#22c55e"></div>
+                        <div class="color-option" style="background:#f97316" data-color="#f97316"></div>
+                        <div class="color-option" style="background:#a855f7" data-color="#a855f7"></div>
+                        <div class="color-option" style="background:#ec4899" data-color="#ec4899"></div>
+                        <div class="color-option" style="background:#06b6d4" data-color="#06b6d4"></div>
+                    </div>
+                    <input type="hidden" name="color" value="#3b82f6">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addSiteModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="siteDetailModal">
+        <div class="modal large">
+            <div class="modal-header">
+                <h3 class="modal-title" id="siteDetailTitle">Détails</h3>
+                <button class="modal-close" onclick="closeModal('siteDetailModal')">×</button>
+            </div>
+            <div id="siteDetailContent"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal" style="max-width:380px">
+            <div class="modal-header">
+                <h3 class="modal-title" id="confirmTitle">Confirmer</h3>
+                <button class="modal-close" onclick="closeModal('confirmModal')">×</button>
+            </div>
+            <p id="confirmMessage" style="margin-bottom:20px;color:var(--text-secondary);font-size:14px;"></p>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Annuler</button>
+                <button class="btn btn-danger" onclick="confirmAction()">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="webhookModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nouveau Webhook</h3>
+                <button class="modal-close" onclick="closeModal('webhookModal')">×</button>
+            </div>
+            <form id="webhookForm" onsubmit="handleAddWebhook(event); return false;">
+                <div class="form-group">
+                    <label class="form-label">Nom</label>
+                    <input type="text" class="form-input" id="webhookName" placeholder="Mon webhook" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL</label>
+                    <input type="url" class="form-input" id="webhookUrl" placeholder="https://example.com/webhook" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Événements</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                            <input type="checkbox" name="webhookEvents" value="payment.completed" checked> Paiement reçu
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                            <input type="checkbox" name="webhookEvents" value="payment.failed"> Paiement échoué
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                            <input type="checkbox" name="webhookEvents" value="user.created"> Nouvel utilisateur
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                            <input type="checkbox" name="webhookEvents" value="subscription.created"> Nouvel abonnement
+                        </label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('webhookModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+const API_URL = window.location.origin + '/api.php';
+let authToken = localStorage.getItem('authToken');
+let currentAdmin = null;
+let currentPage = 'overview';
+let sitesCache = [];
+let charts = {};
+let confirmCallback = null;
+let chartPeriod = '30d';
+
+// ============== HELPERS ==============
+function showToast(msg, type = 'info') {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.innerHTML = '<span>' + msg + '</span>';
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+async function api(endpoint, options = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    
+    let method = options.method || 'GET';
+    if (method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+        headers['X-HTTP-Method-Override'] = method;
+        options.method = 'POST';
+    }
+    
+    try {
+        const res = await fetch(API_URL + endpoint, { ...options, headers: { ...headers, ...options.headers } });
+        const text = await res.text();
+        console.log('API Response:', res.status, text.substring(0, 200));
+        if (!text) throw new Error('Réponse vide du serveur');
+        let data;
+        try { data = JSON.parse(text); } catch (e) { 
+            console.error('JSON Parse error:', text);
+            throw new Error('Réponse invalide'); 
+        }
+        if (!res.ok) {
+            if (res.status === 401) logout();
+            throw new Error(data.error || 'Erreur ' + res.status);
+        }
+        return data;
+    } catch (err) { console.error('API Error:', err); throw err; }
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { 
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.remove('active');
+        // Supprimer les modals injectés dynamiquement
+        setTimeout(() => {
+            const m = document.getElementById(id);
+            if (m && m.classList.contains('modal-overlay')) m.remove();
+        }, 200);
+    }
+}
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('mobileOverlay').classList.toggle('active');
+}
+
+function timeAgo(d) {
+    const s = Math.floor((Date.now() - new Date(d)) / 1000);
+    if (s < 60) return 'À l\'instant';
+    if (s < 3600) return `Il y a ${Math.floor(s/60)} min`;
+    if (s < 86400) return `Il y a ${Math.floor(s/3600)}h`;
+    return new Date(d).toLocaleDateString('fr-FR');
+}
+
+function formatCurrency(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); }
+function formatNumber(n) { return new Intl.NumberFormat('fr-FR').format(n); }
+
+function showConfirm(title, msg, cb) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = msg;
+    confirmCallback = cb;
+    openModal('confirmModal');
+}
+function confirmAction() { closeModal('confirmModal'); if (confirmCallback) confirmCallback(); }
+
+// ============== MOT DE PASSE OUBLIÉ ==============
+function showForgotPassword() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('forgotPasswordForm').style.display = 'block';
+    document.getElementById('resetPasswordForm').style.display = 'none';
+    document.getElementById('emailSentMessage').style.display = 'none';
+    document.getElementById('loginTitle').textContent = 'Mot de passe oublié';
+    document.getElementById('loginSubtitle').textContent = 'Réinitialisez votre mot de passe';
+}
+
+function showLoginForm() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('resetPasswordForm').style.display = 'none';
+    document.getElementById('emailSentMessage').style.display = 'none';
+    document.getElementById('loginTitle').textContent = 'Connexion';
+    document.getElementById('loginSubtitle').textContent = 'Accédez à votre tableau de bord';
+}
+
+function showResetForm(token) {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('resetPasswordForm').style.display = 'block';
+    document.getElementById('emailSentMessage').style.display = 'none';
+    document.getElementById('loginTitle').textContent = 'Nouveau mot de passe';
+    document.getElementById('loginSubtitle').textContent = 'Créez votre nouveau mot de passe';
+    document.getElementById('resetToken').value = token;
+}
+
+function checkResetToken() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('reset_token');
+    if (token) {
+        showResetForm(token);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+
+// ============== AUTH ==============
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+        showToast('Veuillez remplir tous les champs', 'error');
+        return;
+    }
+    
+    try {
+        const data = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email: email, password: password })
+        });
+        
+        // Vérifier si 2FA est requis
+        if (data.requires2FA) {
+            show2FAVerificationForm(data.tempToken);
+            return;
+        }
+        
+        authToken = data.token;
+        currentAdmin = data.admin;
+        localStorage.setItem('authToken', authToken);
+        showToast('Connexion réussie!', 'success');
+        showApp();
+    } catch (err) { 
+        showToast(err.message, 'error'); 
+    }
+}
+
+// Fonctions 2FA pour le login
+function show2FAVerificationForm(tempToken) {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('twoFactorForm').style.display = 'block';
+    document.getElementById('loginTitle').textContent = 'Vérification 2FA';
+    document.getElementById('loginSubtitle').textContent = 'Entrez le code de votre application';
+    document.getElementById('tempToken').value = tempToken;
+    setTimeout(() => document.getElementById('twoFactorCode').focus(), 100);
+}
+
+async function validate2FACode() {
+    const tempToken = document.getElementById('tempToken').value;
+    const code = document.getElementById('twoFactorCode').value.replace(/\s/g, '');
+    
+    if (!code || code.length < 6) {
+        showToast('Veuillez entrer un code valide', 'error');
+        return;
+    }
+    
+    try {
+        const data = await api('/auth/2fa/validate', {
+            method: 'POST',
+            body: JSON.stringify({ tempToken, code })
+        });
+        
+        authToken = data.token;
+        currentAdmin = data.admin;
+        localStorage.setItem('authToken', authToken);
+        showToast('Connexion réussie!', 'success');
+        showApp();
+    } catch (err) {
+        showToast(err.message, 'error');
+        document.getElementById('twoFactorCode').value = '';
+        document.getElementById('twoFactorCode').focus();
+    }
+}
+
+function backToLoginFrom2FA() {
+    document.getElementById('twoFactorForm').style.display = 'none';
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('loginTitle').textContent = 'Connexion';
+    document.getElementById('loginSubtitle').textContent = 'Accédez à votre tableau de bord';
+    document.getElementById('twoFactorCode').value = '';
+}
+
+async function doForgotPassword() {
+    const email = document.getElementById('forgotEmail').value;
+    
+    if (!email) {
+        showToast('Veuillez entrer votre email', 'error');
+        return;
+    }
+    
+    try {
+        await api('/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email: email })
+        });
+    } catch (err) {
+        console.log('Forgot password request sent');
+    }
+    
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('emailSentMessage').style.display = 'block';
+    document.getElementById('loginTitle').textContent = 'Email envoyé';
+    document.getElementById('loginSubtitle').textContent = '';
+}
+
+async function doResetPassword() {
+    const token = document.getElementById('resetToken').value;
+    const password = document.getElementById('resetPassword').value;
+    const confirmPassword = document.getElementById('resetConfirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        showToast('Les mots de passe ne correspondent pas', 'error');
+        return;
+    }
+    
+    if (password.length < 8) {
+        showToast('Le mot de passe doit contenir au moins 8 caractères', 'error');
+        return;
+    }
+    
+    try {
+        await api('/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ token: token, password: password, confirmPassword: confirmPassword })
+        });
+        showToast('Mot de passe réinitialisé avec succès!', 'success');
+        showLoginForm();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function logout() {
+    authToken = null;
+    currentAdmin = null;
+    localStorage.removeItem('authToken');
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('appContainer').classList.remove('active');
+}
+
+async function handleLogout() {
+    try { await api('/auth/logout', { method: 'POST' }); } catch {}
+    logout();
+    showToast('Déconnexion réussie', 'success');
+}
+
+async function checkAuth() {
+    if (!authToken) return false;
+    try { currentAdmin = await api('/auth/me'); return true; } catch { return false; }
+}
+
+async function checkConnection() {
+    try {
+        await api('/dashboard/overview');
+        document.getElementById('connectionStatus').classList.add('connected');
+        document.getElementById('connectionText').textContent = 'Connecté';
+        return true;
+    } catch {
+        document.getElementById('connectionStatus').classList.remove('connected');
+        document.getElementById('connectionText').textContent = 'Déconnecté';
+        return false;
+    }
+}
+
+async function showApp() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appContainer').classList.add('active');
+    if (currentAdmin) {
+        document.getElementById('userName').textContent = currentAdmin.firstName + ' ' + currentAdmin.lastName;
+        document.getElementById('userRole').textContent = currentAdmin.role === 'super_admin' ? 'Super Admin' : 'Admin';
+        document.getElementById('userAvatar').textContent = (currentAdmin.firstName[0] + currentAdmin.lastName[0]).toUpperCase();
+    }
+    await checkConnection();
+    loadPage('overview');
+    
+    // Démarrer les mises à jour temps réel
+    startRealtimeUpdates();
+}
+
+// ============== NAVIGATION ==============
+document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        loadPage(item.dataset.page);
+        if (window.innerWidth <= 768) toggleSidebar();
+    });
+});
+
+document.querySelectorAll('.color-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        document.querySelector('input[name="color"]').value = opt.dataset.color;
+    });
+});
+
+async function loadPage(page) {
+    currentPage = page;
+    const content = document.getElementById('mainContent');
+    content.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    try {
+        switch(page) {
+            case 'overview': await loadOverview(); break;
+            case 'sites': await loadSites(); break;
+            case 'analytics': await loadAnalytics(); break;
+            case 'payments': await loadPayments(); break;
+            case 'subscriptions': await loadSubscriptions(); break;
+            case 'alerts': await loadAlerts(); break;
+            case 'integrations': await loadIntegrations(); break;
+            case 'notifications': await loadNotifications(); break;
+            case 'webhooks': await loadWebhooks(); break;
+            case 'reports': await loadReports(); break;
+            case 'team': await loadTeam(); break;
+            case 'api-keys': await loadApiKeys(); break;
+            case 'monitoring': await loadMonitoring(); break;
+            case 'settings': await loadSettings(); break;
+        }
+    } catch (err) {
+        content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Erreur</h3><p>${err.message}</p><button class="btn btn-primary" onclick="loadPage('${page}')">Réessayer</button></div>`;
+    }
+}
+
+// ============== OVERVIEW ==============
+async function loadOverview() {
+    const [overview, sites, activities, breakdown, comparison] = await Promise.all([
+        api('/dashboard/overview'),
+        api('/sites'),
+        api('/activities?limit=8'),
+        api('/analytics/breakdown'),
+        api('/analytics/comparison?period=30d').catch(() => ({ trends: { revenue: 0, users: 0, payments: 0 } }))
+    ]);
+    sitesCache = sites;
+
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>Vue d'ensemble</h1><p>Bienvenue ${currentAdmin?.firstName || ''}!</p></div>
+            <div class="header-right">
+                <div class="realtime-indicator"><div class="realtime-dot"></div><span>Temps réel</span></div>
+                <button class="btn btn-secondary" onclick="openSearch()" title="Cmd+K">🔍 Rechercher</button>
+                <button class="btn btn-secondary" onclick="loadPage('reports')">📄 Rapports</button>
+                <button class="btn btn-primary" onclick="openModal('addSiteModal')">+ Ajouter un site</button>
+            </div>
+        </header>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon blue">👥</div>
+                    <span class="stat-trend ${comparison.trends?.users >= 0 ? 'up' : 'down'}">${comparison.trends?.users >= 0 ? '↑' : '↓'} ${Math.abs(comparison.trends?.users || 0)}%</span>
+                </div>
+                <div class="stat-value">${formatNumber(overview.totalUsers)}</div>
+                <div class="stat-label">Utilisateurs</div>
+                <div class="stat-sub">vs période précédente</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon green">💳</div>
+                    <span class="stat-trend ${comparison.trends?.payments >= 0 ? 'up' : 'down'}">${comparison.trends?.payments >= 0 ? '↑' : '↓'} ${Math.abs(comparison.trends?.payments || 0)}%</span>
+                </div>
+                <div class="stat-value">${formatNumber(overview.monthlyPayments)}</div>
+                <div class="stat-label">Paiements ce mois</div>
+                <div class="stat-sub">vs période précédente</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon orange">💰</div>
+                    <span class="stat-trend ${comparison.trends?.revenue >= 0 ? 'up' : 'down'}">${comparison.trends?.revenue >= 0 ? '↑' : '↓'} ${Math.abs(comparison.trends?.revenue || 0)}%</span>
+                </div>
+                <div class="stat-value">${formatCurrency(overview.totalRevenue)}</div>
+                <div class="stat-label">Revenus totaux</div>
+                <div class="stat-sub">vs période précédente</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><div class="stat-icon purple">📈</div></div>
+                <div class="stat-value">${formatCurrency(overview.mrr || 0)}</div>
+                <div class="stat-label">MRR</div>
+                <div class="stat-sub">Revenus récurrents mensuels</div>
+            </div>
+        </div>
+        <div class="section-header"><h2 class="section-title">Mes Sites (${sites.length})</h2></div>
+        <div class="sites-grid">${sites.slice(0, 4).map(s => renderSiteCard(s)).join('')}</div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">📊 Revenus</h3>
+                    <div class="chart-tabs">
+                        <button class="chart-tab" data-period="7d" onclick="updateChart('7d')">7j</button>
+                        <button class="chart-tab active" data-period="30d" onclick="updateChart('30d')">30j</button>
+                        <button class="chart-tab" data-period="90d" onclick="updateChart('90d')">90j</button>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header"><h3 class="chart-title">🏆 Répartition par site</h3></div>
+                <div class="breakdown-list">${breakdown.slice(0, 5).map(b => `
+                    <div class="breakdown-item">
+                        <div class="breakdown-color" style="background:${b.color}"></div>
+                        <div class="breakdown-info"><div class="breakdown-name">${b.name}</div><div class="breakdown-bar"><div class="breakdown-progress" style="width:${b.percentage}%;background:${b.color}"></div></div></div>
+                        <div class="breakdown-value">${formatCurrency(b.revenue || 0)}</div>
+                    </div>
+                `).join('')}</div>
+            </div>
+        </div>
+        <div class="activity-section">
+            <div class="chart-header"><h3 class="chart-title">⚡ Activité récente</h3></div>
+            <div class="activity-list">${activities.length > 0 ? activities.map(a => renderActivity(a)).join('') : '<div class="empty-state"><p>Aucune activité récente</p></div>'}</div>
+        </div>
+    `;
+    initCharts();
+}
+
+async function initCharts() {
+    const data = await api(`/analytics/charts?period=${chartPeriod}`);
+    const ctx = document.getElementById('revenueChart')?.getContext('2d');
+    if (!ctx) return;
+    
+    if (charts.revenue) charts.revenue.destroy();
+    
+    charts.revenue = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.daily.map(d => {
+                const date = new Date(d.date);
+                return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+            }),
+            datasets: [{
+                label: 'Revenus',
+                data: data.daily.map(d => d.revenue),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#3b82f6'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    padding: 12,
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 12 },
+                    callbacks: { label: ctx => formatCurrency(ctx.raw) }
+                }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a', maxTicksLimit: 8 } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a', callback: v => formatCurrency(v) } }
+            }
+        }
+    });
+}
+
+async function updateChart(period) {
+    chartPeriod = period;
+    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.chart-tab[data-period="${period}"]`)?.classList.add('active');
+    await initCharts();
+}
+
+function renderSiteCard(s) {
+    return `<div class="site-card" onclick="showSiteDetail('${s.id}')">
+        <div class="site-header">
+            <div class="site-info"><div class="site-favicon" style="background:${s.color}">${s.name[0]}</div><div><div class="site-name">${s.name}</div><div class="site-url">${s.url}</div></div></div>
+            <span class="site-status ${s.status}"><span class="status-dot"></span>${s.status === 'online' ? 'En ligne' : 'Hors ligne'}</span>
+        </div>
+        <div class="site-metrics">
+            <div class="metric"><div class="metric-value">${formatNumber(s.stats?.users || 0)}</div><div class="metric-label">Users</div></div>
+            <div class="metric"><div class="metric-value">${formatNumber(s.stats?.payments || 0)}</div><div class="metric-label">Paiements</div></div>
+            <div class="metric"><div class="metric-value">${formatCurrency(s.stats?.revenue || 0)}</div><div class="metric-label">Revenus</div></div>
+            <div class="metric"><div class="metric-value">${s.stats?.uptime || 100}%</div><div class="metric-label">Uptime</div></div>
+        </div>
+    </div>`;
+}
+
+function renderActivity(a) {
+    const icons = { payment: '💳', signup: '👤', login: '🔑', upgrade: '⬆️', churn: '👋', refund: '↩️' };
+    return `<div class="activity-item">
+        <div class="activity-icon ${a.type}">${icons[a.type] || '📌'}</div>
+        <div class="activity-content"><div class="activity-text"><strong>${a.message}</strong> sur ${a.siteName}</div><div class="activity-meta"><span>${timeAgo(a.createdAt)}</span>${a.details ? '<span class="activity-amount">' + a.details + '</span>' : ''}</div></div>
+    </div>`;
+}
+
+// ============== SITES ==============
+async function loadSites() {
+    const sites = await api('/sites');
+    sitesCache = sites;
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header"><div><h1>Mes Sites</h1><p>${sites.length} site(s) configuré(s)</p></div><button class="btn btn-primary" onclick="openModal('addSiteModal')">+ Ajouter</button></header>
+        ${sites.length > 0 ? `<div class="sites-grid">${sites.map(s => renderSiteCard(s)).join('')}</div>` : '<div class="empty-state"><div class="empty-state-icon">🌐</div><h3>Aucun site</h3><p>Ajoutez votre premier site pour commencer</p><button class="btn btn-primary" onclick="openModal(\'addSiteModal\')">+ Ajouter un site</button></div>'}
+    `;
+}
+
+async function showSiteDetail(id) {
+    const s = await api('/sites/' + id);
+    document.getElementById('siteDetailTitle').textContent = s.name;
+    document.getElementById('siteDetailContent').innerHTML = `
+        <div style="display:flex;gap:16px;margin-bottom:20px;align-items:center"><div class="site-favicon" style="width:60px;height:60px;font-size:24px;background:${s.color}">${s.name[0]}</div><div><h2 style="margin-bottom:4px">${s.name}</h2><p style="color:var(--text-muted)">${s.url}</p><span class="site-status ${s.status}"><span class="status-dot"></span>${s.status}</span></div></div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+            <div class="stat-card" style="padding:16px"><div class="stat-value" style="font-size:22px">${formatNumber(s.stats?.users || 0)}</div><div class="stat-label">Utilisateurs</div></div>
+            <div class="stat-card" style="padding:16px"><div class="stat-value" style="font-size:22px">${formatNumber(s.stats?.payments || 0)}</div><div class="stat-label">Paiements</div></div>
+            <div class="stat-card" style="padding:16px"><div class="stat-value" style="font-size:22px">${formatCurrency(s.stats?.revenue || 0)}</div><div class="stat-label">Revenus</div></div>
+        </div>
+        <div class="api-info" style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">SITE ID</div>
+            <div class="api-key-display"><code>${s.id}</code><button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${s.id}');showToast('Copié!','success')">📋</button></div>
+        </div>
+        <div class="api-info" style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">CLÉ API</div>
+            <div class="api-key-display"><code>${s.apiKey}</code><button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${s.apiKey}');showToast('Copié!','success')">📋</button></div>
+        </div>
+        ${s.webhookSecret ? `
+        <div class="api-info">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">🔐 WEBHOOK SECRET (pour signature HMAC)</div>
+            <div class="api-key-display"><code>${s.webhookSecret}</code><button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${s.webhookSecret}');showToast('Copié!','success')">📋</button></div>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:8px">Utilisez ce secret pour signer vos webhooks avec HMAC-SHA256</p>
+        </div>
+        ` : ''}
+        <div class="form-actions" style="margin-top:20px"><button class="btn btn-danger" onclick="deleteSite('${s.id}')">🗑️ Supprimer ce site</button></div>
+    `;
+    openModal('siteDetailModal');
+}
+
+async function handleAddSite(e) {
+    e.preventDefault();
+    try {
+        await api('/sites', { method: 'POST', body: JSON.stringify({ name: e.target.name.value, url: e.target.url.value, color: e.target.color.value }) });
+        showToast('Site ajouté!', 'success');
+        closeModal('addSiteModal');
+        e.target.reset();
+        loadPage(currentPage);
+    } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function deleteSite(id) {
+    showConfirm('Supprimer ce site?', 'Cette action est irréversible. Toutes les données seront perdues.', async () => {
+        try { await api('/sites/' + id, { method: 'DELETE' }); showToast('Site supprimé', 'success'); closeModal('siteDetailModal'); loadPage(currentPage); } catch (err) { showToast(err.message, 'error'); }
+    });
+}
+
+// ============== ANALYTICS ==============
+async function loadAnalytics() {
+    const [charts, comparison, mrr] = await Promise.all([
+        api('/analytics/charts?period=30d'),
+        api('/analytics/comparison?period=30d'),
+        api('/analytics/mrr').catch(() => ({ mrr: 0, arr: 0 }))
+    ]);
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>📈 Statistiques</h1><p>Analyse détaillée de vos performances</p></div>
+            <div class="header-right">
+                <select class="filter-select" id="analyticsPeriod" onchange="changeAnalyticsPeriod(this.value)">
+                    <option value="7d">7 derniers jours</option>
+                    <option value="30d" selected>30 derniers jours</option>
+                    <option value="90d">90 derniers jours</option>
+                </select>
+                <button class="btn btn-secondary" onclick="exportData('payments')">📤 Exporter CSV</button>
+            </div>
+        </header>
+        <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
+            <div class="stat-card">
+                <div class="stat-header"><div class="stat-icon green">💰</div></div>
+                <div class="stat-value">${formatCurrency(comparison.current?.revenue || 0)}</div>
+                <div class="stat-label">Revenus période</div>
+                <div class="stat-sub"><span class="stat-trend ${comparison.trends?.revenue >= 0 ? 'up' : 'down'}">${comparison.trends?.revenue >= 0 ? '↑' : '↓'} ${Math.abs(comparison.trends?.revenue || 0)}%</span> vs précédent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><div class="stat-icon blue">💳</div></div>
+                <div class="stat-value">${formatNumber(comparison.current?.payments || 0)}</div>
+                <div class="stat-label">Transactions</div>
+                <div class="stat-sub"><span class="stat-trend ${comparison.trends?.payments >= 0 ? 'up' : 'down'}">${comparison.trends?.payments >= 0 ? '↑' : '↓'} ${Math.abs(comparison.trends?.payments || 0)}%</span> vs précédent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><div class="stat-icon orange">👥</div></div>
+                <div class="stat-value">${formatNumber(comparison.current?.users || 0)}</div>
+                <div class="stat-label">Nouveaux users</div>
+                <div class="stat-sub"><span class="stat-trend ${comparison.trends?.users >= 0 ? 'up' : 'down'}">${comparison.trends?.users >= 0 ? '↑' : '↓'} ${Math.abs(comparison.trends?.users || 0)}%</span> vs précédent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><div class="stat-icon purple">📈</div></div>
+                <div class="stat-value">${formatCurrency(mrr.mrr || 0)}</div>
+                <div class="stat-label">MRR</div>
+                <div class="stat-sub">Revenus mensuels récurrents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><div class="stat-icon purple">🎯</div></div>
+                <div class="stat-value">${formatCurrency(mrr.arr || 0)}</div>
+                <div class="stat-label">ARR</div>
+                <div class="stat-sub">Revenus annuels récurrents</div>
+            </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:24px">
+            <div class="chart-header"><h3 class="chart-title">📊 Évolution des revenus</h3></div>
+            <div class="chart-container" style="height:350px"><canvas id="analyticsChart"></canvas></div>
+        </div>
+    `;
+    
+    const ctx = document.getElementById('analyticsChart')?.getContext('2d');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: charts.daily.map(d => new Date(d.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })),
+                datasets: [{ label: 'Revenus', data: charts.daily.map(d => d.revenue), backgroundColor: 'rgba(59, 130, 246, 0.6)', borderRadius: 4 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#71717a', maxTicksLimit: 10 } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a', callback: v => formatCurrency(v) } }
+                }
+            }
+        });
+    }
+}
+
+async function changeAnalyticsPeriod(period) {
+    const content = document.getElementById('mainContent');
+    content.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    chartPeriod = period;
+    await loadAnalytics();
+}
+
+function exportData(type) {
+    window.open(API_URL + `/export/${type}?format=csv`, '_blank');
+    showToast('Export en cours...', 'info');
+}
+
+// ============== PAYMENTS ==============
+async function loadPayments() {
+    const { payments, total, totalAmount } = await api('/payments?limit=50');
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>💳 Paiements</h1><p>${formatNumber(total)} paiements - ${formatCurrency(totalAmount)}</p></div>
+            <div class="header-right"><button class="btn btn-secondary" onclick="exportData('payments')">📤 Exporter CSV</button></div>
+        </header>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>ID</th><th>Date</th><th>Montant</th><th>Méthode</th><th>Statut</th><th>Site</th></tr></thead>
+                <tbody>
+                    ${payments.map(p => `<tr>
+                        <td style="font-family:monospace;font-size:11px;color:var(--text-muted)">${p.id.substring(0, 12)}...</td>
+                        <td>${new Date(p.createdAt).toLocaleString('fr-FR')}</td>
+                        <td style="font-weight:600;color:${p.status === 'completed' ? 'var(--success)' : 'var(--danger)'}">${formatCurrency(p.amount)}</td>
+                        <td>${p.paymentMethod || 'N/A'}</td>
+                        <td><span class="table-badge ${p.status === 'completed' ? 'success' : p.status === 'refunded' ? 'warning' : 'danger'}">${p.status}</span></td>
+                        <td>${p.siteName || sitesCache.find(s => s.id === p.siteId)?.name || 'N/A'}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// ============== SUBSCRIPTIONS ==============
+async function loadSubscriptions() {
+    const { subscriptions, total } = await api('/subscriptions?limit=50');
+    const active = subscriptions.filter(s => s.status === 'active').length;
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header"><div><h1>🔄 Abonnements</h1><p>${formatNumber(total)} abonnements - ${active} actifs</p></div></header>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+            <div class="stat-card"><div class="stat-value" style="color:var(--success)">${active}</div><div class="stat-label">Actifs</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--warning)">${subscriptions.filter(s => s.status === 'pending').length}</div><div class="stat-label">En attente</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--danger)">${subscriptions.filter(s => s.status === 'cancelled').length}</div><div class="stat-label">Annulés</div></div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>Utilisateur</th><th>Plan</th><th>Montant</th><th>Statut</th><th>Créé le</th></tr></thead>
+                <tbody>
+                    ${subscriptions.map(s => `<tr>
+                        <td>${s.user?.email || '-'}</td>
+                        <td><span class="table-badge info">${s.plan}</span></td>
+                        <td>${formatCurrency(s.amount)}/${s.interval || 'mois'}</td>
+                        <td><span class="table-badge ${s.status === 'active' ? 'success' : s.status === 'pending' ? 'warning' : 'danger'}">${s.status}</span></td>
+                        <td>${new Date(s.createdAt).toLocaleDateString('fr-FR')}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// ============== REPORTS ==============
+async function loadReports() {
+    const [reports, scheduled, generated] = await Promise.all([
+        api('/reports').catch(() => []),
+        api('/reports/scheduled').catch(() => []),
+        api('/reports/generated').catch(() => [])
+    ]);
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>📄 Rapports</h1><p>Générez et programmez vos rapports</p></div>
+            <div class="header-right">
+                <button class="btn btn-secondary" onclick="createScheduledReport()">⏰ Programmer</button>
+                <button class="btn btn-primary" onclick="generateReport()">📊 Générer un rapport</button>
+            </div>
+        </header>
+        
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+            <div class="stat-card" style="cursor:pointer" onclick="quickReport('daily')">
+                <div style="font-size:28px;margin-bottom:8px">📅</div>
+                <div class="stat-label">Journalier</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Dernières 24h</div>
+            </div>
+            <div class="stat-card" style="cursor:pointer" onclick="quickReport('weekly')">
+                <div style="font-size:28px;margin-bottom:8px">📆</div>
+                <div class="stat-label">Hebdomadaire</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">7 derniers jours</div>
+            </div>
+            <div class="stat-card" style="cursor:pointer" onclick="quickReport('monthly')">
+                <div style="font-size:28px;margin-bottom:8px">📊</div>
+                <div class="stat-label">Mensuel</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">30 derniers jours</div>
+            </div>
+            <div class="stat-card" style="cursor:pointer" onclick="generateReport()">
+                <div style="font-size:28px;margin-bottom:8px">📝</div>
+                <div class="stat-label">Personnalisé</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Période au choix</div>
+            </div>
+        </div>
+        
+        ${scheduled.length > 0 ? `
+            <div class="settings-section">
+                <h3 class="settings-title">⏰ Rapports programmés</h3>
+                <div class="data-grid">
+                    ${scheduled.map(s => `
+                        <div class="card" style="padding:16px">
+                            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                                <div>
+                                    <h4>${s.name}</h4>
+                                    <p style="font-size:12px;color:var(--text-muted)">${s.reportType} • ${s.frequency} • ${s.format.toUpperCase()}</p>
+                                </div>
+                                <label class="toggle">
+                                    <input type="checkbox" ${s.isActive ? 'checked' : ''} onchange="toggleScheduledReport('${s.id}', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
+                                <span style="color:var(--text-muted)">
+                                    Prochain envoi: ${s.nextSendAt ? new Date(s.nextSendAt).toLocaleDateString('fr-FR') : 'Non planifié'}
+                                </span>
+                                <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="deleteScheduledReport('${s.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : ''}
+        
+        <div class="settings-section">
+            <h3 class="settings-title">📁 Rapports générés (${generated.length})</h3>
+            ${generated.length === 0 ? `
+                <div class="empty-state" style="padding:40px">
+                    <div style="font-size:48px;margin-bottom:16px">📭</div>
+                    <p>Aucun rapport généré</p>
+                    <p style="font-size:12px;color:var(--text-muted);margin-top:8px">Cliquez sur un bouton ci-dessus pour générer votre premier rapport</p>
+                </div>
+            ` : `
+                <div class="table-container" style="border:none">
+                    <table>
+                        <thead><tr><th>Nom</th><th>Type</th><th>Période</th><th>Format</th><th>Date</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            ${generated.slice(0, 20).map(r => `<tr>
+                                <td style="font-weight:500">${r.name}</td>
+                                <td><span class="table-badge info">${r.reportType}</span></td>
+                                <td>${new Date(r.periodStart).toLocaleDateString('fr-FR')} → ${new Date(r.periodEnd).toLocaleDateString('fr-FR')}</td>
+                                <td>${r.format.toUpperCase()}</td>
+                                <td>${new Date(r.createdAt).toLocaleString('fr-FR')}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary" onclick="downloadReport('${r.id}')">📥 Voir</button>
+                                </td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `}
+        </div>
+    `;
+}
+
+async function quickReport(period) {
+    const periods = {
+        daily: { start: new Date(Date.now() - 24*60*60*1000), end: new Date() },
+        weekly: { start: new Date(Date.now() - 7*24*60*60*1000), end: new Date() },
+        monthly: { start: new Date(Date.now() - 30*24*60*60*1000), end: new Date() }
+    };
+    const p = periods[period];
+    
+    showToast('Génération du rapport...', 'info');
+    try {
+        const result = await api('/reports/generate', {
+            method: 'POST',
+            body: JSON.stringify({
+                reportType: 'full',
+                periodStart: p.start.toISOString().split('T')[0],
+                periodEnd: p.end.toISOString().split('T')[0],
+                format: 'pdf'
+            })
+        });
+        
+        // Ouvrir le HTML dans une nouvelle fenêtre
+        const win = window.open('', '_blank');
+        win.document.write(result.html);
+        win.document.close();
+        
+        showToast('Rapport généré!', 'success');
+        loadReports();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function downloadReport(id) {
+    try {
+        const result = await api('/reports/generated/' + id);
+        const win = window.open('', '_blank');
+        win.document.write(result.html);
+        win.document.close();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function toggleScheduledReport(id, active) {
+    try {
+        await api('/reports/scheduled/' + id, {
+            method: 'PUT',
+            body: JSON.stringify({ isActive: active })
+        });
+        showToast(active ? 'Rapport activé' : 'Rapport désactivé', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+        loadReports();
+    }
+}
+
+async function deleteScheduledReport(id) {
+    showConfirm('Supprimer ce rapport programmé?', 'Cette action est irréversible.', async () => {
+        try {
+            await api('/reports/scheduled/' + id, { method: 'DELETE' });
+            showToast('Rapport supprimé', 'success');
+            loadReports();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
+
+function viewReport(type) {
+    window.open(API_URL + `/reports/generate?type=${type}&format=html`, '_blank');
+}
+
+// ============== NOTIFICATIONS ==============
+async function loadNotifications() {
+    const settings = await api('/notifications/settings');
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header"><div><h1>🔔 Notifications</h1><p>Configurez vos alertes en temps réel</p></div></header>
+        
+        <div class="settings-section">
+            <h3 class="settings-title">📧 Email</h3>
+            <div class="notification-channel">
+                <div class="notification-header">
+                    <div class="notification-icon email">📧</div>
+                    <div style="flex:1"><h4>Notifications Email</h4><p style="font-size:12px;color:var(--text-muted)">Recevez les alertes par email</p></div>
+                    <label class="toggle"><input type="checkbox" id="emailEnabled" ${settings.email?.enabled ? 'checked' : ''} onchange="updateNotificationSetting('email', 'enabled', this.checked)"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="form-group" style="margin-top:12px;margin-bottom:0">
+                    <input type="email" class="form-input" id="emailAddress" placeholder="votre@email.com" value="${settings.email?.address || ''}" onblur="updateNotificationSetting('email', 'address', this.value)">
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3 class="settings-title">💬 Slack</h3>
+            <div class="notification-channel">
+                <div class="notification-header">
+                    <div class="notification-icon slack">💬</div>
+                    <div style="flex:1"><h4>Notifications Slack</h4><p style="font-size:12px;color:var(--text-muted)">Recevez les alertes sur votre channel Slack</p></div>
+                    <label class="toggle"><input type="checkbox" id="slackEnabled" ${settings.slack?.enabled ? 'checked' : ''} onchange="updateNotificationSetting('slack', 'enabled', this.checked)"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="form-group" style="margin-top:12px;margin-bottom:8px">
+                    <input type="url" class="form-input" id="slackWebhook" placeholder="https://hooks.slack.com/services/..." value="${settings.slack?.webhookUrl || ''}" onblur="updateNotificationSetting('slack', 'webhookUrl', this.value)">
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="testNotification('slack')">🧪 Tester</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3 class="settings-title">🎮 Discord</h3>
+            <div class="notification-channel">
+                <div class="notification-header">
+                    <div class="notification-icon discord">🎮</div>
+                    <div style="flex:1"><h4>Notifications Discord</h4><p style="font-size:12px;color:var(--text-muted)">Recevez les alertes sur votre serveur Discord</p></div>
+                    <label class="toggle"><input type="checkbox" id="discordEnabled" ${settings.discord?.enabled ? 'checked' : ''} onchange="updateNotificationSetting('discord', 'enabled', this.checked)"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="form-group" style="margin-top:12px;margin-bottom:8px">
+                    <input type="url" class="form-input" id="discordWebhook" placeholder="https://discord.com/api/webhooks/..." value="${settings.discord?.webhookUrl || ''}" onblur="updateNotificationSetting('discord', 'webhookUrl', this.value)">
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="testNotification('discord')">🧪 Tester</button>
+            </div>
+        </div>
+    `;
+}
+
+async function updateNotificationSetting(channel, key, value) {
+    try {
+        await api('/notifications/settings', { method: 'PUT', body: JSON.stringify({ [channel]: { [key]: value } }) });
+        showToast('Paramètre enregistré', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function testNotification(channel) {
+    try {
+        await api('/notifications/test', { method: 'POST', body: JSON.stringify({ channel }) });
+        showToast('Notification de test envoyée!', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ============== WEBHOOKS ==============
+async function loadWebhooks() {
+    let webhooks = [];
+    try { webhooks = await api('/webhooks/outgoing'); } catch { webhooks = []; }
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>🔗 Webhooks</h1><p>Notifications automatiques vers vos services</p></div>
+            <button class="btn btn-primary" onclick="openModal('webhookModal')">+ Nouveau webhook</button>
+        </header>
+        
+        <div class="settings-section">
+            <h3 class="settings-title">Webhooks sortants</h3>
+            ${webhooks.length === 0 ? `
+                <div style="text-align:center;padding:40px;color:var(--text-muted)">
+                    <div style="font-size:48px;margin-bottom:16px">🔗</div>
+                    <p>Aucun webhook configuré</p>
+                </div>
+            ` : `
+                <div style="display:grid;gap:16px">
+                    ${webhooks.map(w => `
+                        <div class="stat-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+                            <div style="flex:1;min-width:200px">
+                                <div style="font-weight:600;margin-bottom:4px">${w.name || 'Webhook'}</div>
+                                <div style="font-size:12px;color:var(--text-muted);word-break:break-all">${w.url}</div>
+                                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                                    ${(w.events || []).map(e => `<span style="background:var(--bg-tertiary);padding:2px 8px;border-radius:4px;font-size:11px">${e}</span>`).join('')}
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <button class="btn btn-sm btn-secondary" onclick="testWebhook('${w.id}')">Tester</button>
+                                <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="deleteWebhook('${w.id}')">Supprimer</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `}
+        </div>
+    `;
+}
+
+async function testWebhook(id) {
+    try {
+        await api('/webhooks/outgoing/' + id + '/test', { method: 'POST' });
+        showToast('Webhook testé avec succès!', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function deleteWebhook(id) {
+    showConfirm('Supprimer le webhook', 'Êtes-vous sûr?', async () => {
+        try {
+            await api('/webhooks/outgoing/' + id, { method: 'DELETE' });
+            showToast('Webhook supprimé', 'success');
+            loadWebhooks();
+        } catch (err) { showToast(err.message, 'error'); }
+    });
+}
+
+async function handleAddWebhook(e) {
+    e.preventDefault();
+    const name = document.getElementById('webhookName').value;
+    const url = document.getElementById('webhookUrl').value;
+    const events = Array.from(document.querySelectorAll('input[name="webhookEvents"]:checked')).map(el => el.value);
+    
+    if (!name || !url || events.length === 0) {
+        showToast('Veuillez remplir tous les champs', 'error');
+        return;
+    }
+    
+    try {
+        await api('/webhooks/outgoing', { method: 'POST', body: JSON.stringify({ name, url, events }) });
+        closeModal('webhookModal');
+        showToast('Webhook créé!', 'success');
+        loadWebhooks();
+    } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ============== MONITORING ==============
+async function loadMonitoring() {
+    const data = await api('/monitoring');
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header"><div><h1>📡 Monitoring</h1><p>État de vos sites en temps réel</p></div></header>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px">
+            ${data.map(s => `
+                <div class="stat-card">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                        <div class="site-favicon" style="width:44px;height:44px;background:${sitesCache.find(x => x.id === s.siteId)?.color || '#3b82f6'}">${s.siteName[0]}</div>
+                        <div style="flex:1">
+                            <div style="font-weight:600">${s.siteName}</div>
+                            <span class="site-status ${s.status}"><span class="status-dot"></span>${s.status === 'online' ? 'En ligne' : 'Hors ligne'}</span>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                        <div style="text-align:center;padding:12px;background:var(--bg-tertiary);border-radius:8px">
+                            <div style="font-size:20px;font-weight:700;color:${s.uptime >= 99 ? 'var(--success)' : 'var(--warning)'}">${s.uptime}%</div>
+                            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">Uptime</div>
+                        </div>
+                        <div style="text-align:center;padding:12px;background:var(--bg-tertiary);border-radius:8px">
+                            <div style="font-size:20px;font-weight:700">${s.avgResponseTime}ms</div>
+                            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">Latence</div>
+                        </div>
+                        <div style="text-align:center;padding:12px;background:var(--bg-tertiary);border-radius:8px">
+                            <div style="font-size:20px;font-weight:700;color:${s.incidents === 0 ? 'var(--success)' : 'var(--danger)'}">${s.incidents}</div>
+                            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">Incidents</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// ============== ALERTS ==============
+async function loadAlerts() {
+    const [alerts, sites] = await Promise.all([
+        api('/alerts'),
+        api('/sites')
+    ]);
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>🚨 Alertes intelligentes</h1><p>Configurez des alertes automatiques</p></div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="openModal('addAlertModal')">+ Nouvelle alerte</button>
+            </div>
+        </header>
+        
+        ${alerts.length === 0 ? `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔔</div>
+                <h3>Aucune alerte configurée</h3>
+                <p>Créez des alertes pour être notifié automatiquement</p>
+                <button class="btn btn-primary" onclick="openModal('addAlertModal')">Créer une alerte</button>
+            </div>
+        ` : `
+            <div class="data-grid">
+                ${alerts.map(a => `
+                    <div class="card" style="padding:20px">
+                        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+                            <div>
+                                <h3 style="margin-bottom:4px">${a.name}</h3>
+                                <p style="font-size:12px;color:var(--text-muted)">${a.description || ''}</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" ${a.isActive ? 'checked' : ''} onchange="toggleAlert('${a.id}', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                            <span class="badge" style="background:var(--bg-tertiary)">${getMetricLabel(a.metric)}</span>
+                            <span class="badge" style="background:var(--bg-tertiary)">${getConditionLabel(a.condition)} ${a.threshold}</span>
+                            <span class="badge" style="background:var(--bg-tertiary)">${a.timeWindow}</span>
+                            ${a.siteName ? `<span class="badge" style="background:var(--accent-blue);color:white">${a.siteName}</span>` : ''}
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <div style="font-size:12px;color:var(--text-muted)">
+                                ${a.triggerCount > 0 ? `Déclenchée ${a.triggerCount}x` : 'Jamais déclenchée'}
+                                ${a.lastTriggeredAt ? ` • ${timeAgo(a.lastTriggeredAt)}` : ''}
+                            </div>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-sm btn-secondary" onclick="testAlert('${a.id}')">🧪 Test</button>
+                                <button class="btn btn-sm btn-secondary" onclick="editAlert('${a.id}')">✏️</button>
+                                <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="deleteAlert('${a.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `}
+    `;
+    
+    // Créer la modal d'ajout si elle n'existe pas
+    if (!document.getElementById('addAlertModal')) {
+        createAlertModal(sites);
+    }
+}
+
+function createAlertModal(sites) {
+    const modalHtml = `
+        <div class="modal-overlay" id="addAlertModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">Nouvelle alerte</h3>
+                    <button class="modal-close" onclick="closeModal('addAlertModal')">×</button>
+                </div>
+                <form id="addAlertForm" onsubmit="handleAddAlert(event)">
+                    <div class="form-group">
+                        <label class="form-label">Nom de l'alerte</label>
+                        <input type="text" class="form-input" name="name" placeholder="Ex: Revenus quotidiens bas" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description (optionnel)</label>
+                        <input type="text" class="form-input" name="description" placeholder="Description de l'alerte">
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label class="form-label">Métrique</label>
+                            <select class="form-input" name="metric" required>
+                                <option value="revenue">Revenus</option>
+                                <option value="payments">Nombre de paiements</option>
+                                <option value="users">Nouveaux utilisateurs</option>
+                                <option value="churn">Désabonnements</option>
+                                <option value="mrr">MRR</option>
+                                <option value="conversion">Taux de conversion</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Condition</label>
+                            <select class="form-input" name="condition" required>
+                                <option value="below">Inférieur à</option>
+                                <option value="above">Supérieur à</option>
+                                <option value="equals">Égal à</option>
+                                <option value="change_percent">Variation de %</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label class="form-label">Seuil</label>
+                            <input type="number" class="form-input" name="threshold" step="0.01" placeholder="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Période</label>
+                            <select class="form-input" name="timeWindow">
+                                <option value="hourly">Par heure</option>
+                                <option value="daily" selected>Par jour</option>
+                                <option value="weekly">Par semaine</option>
+                                <option value="monthly">Par mois</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Site (optionnel)</label>
+                        <select class="form-input" name="siteId">
+                            <option value="">Tous les sites</option>
+                            ${sites.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notifications</label>
+                        <div style="display:flex;gap:16px">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                                <input type="checkbox" name="notifyEmail" checked> Email
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                                <input type="checkbox" name="notifySlack"> Slack
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                                <input type="checkbox" name="notifyDiscord"> Discord
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('addAlertModal')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Créer l'alerte</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+async function handleAddAlert(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+        await api('/alerts', {
+            method: 'POST',
+            body: JSON.stringify({
+                name: form.name.value,
+                description: form.description.value,
+                metric: form.metric.value,
+                condition: form.condition.value,
+                threshold: parseFloat(form.threshold.value),
+                timeWindow: form.timeWindow.value,
+                siteId: form.siteId.value || null,
+                notifyEmail: form.notifyEmail.checked,
+                notifySlack: form.notifySlack.checked,
+                notifyDiscord: form.notifyDiscord.checked
+            })
+        });
+        showToast('Alerte créée!', 'success');
+        closeModal('addAlertModal');
+        form.reset();
+        loadAlerts();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function toggleAlert(id, active) {
+    try {
+        await api('/alerts/' + id, { method: 'PUT', body: JSON.stringify({ isActive: active }) });
+        showToast(active ? 'Alerte activée' : 'Alerte désactivée', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+        loadAlerts();
+    }
+}
+
+async function testAlert(id) {
+    try {
+        await api('/alerts/' + id + '/test', { method: 'POST' });
+        showToast('Test envoyé!', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteAlert(id) {
+    showConfirm('Supprimer cette alerte?', 'Cette action est irréversible.', async () => {
+        try {
+            await api('/alerts/' + id, { method: 'DELETE' });
+            showToast('Alerte supprimée', 'success');
+            loadAlerts();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
+
+function getMetricLabel(metric) {
+    const labels = { revenue: '💰 Revenus', payments: '💳 Paiements', users: '👥 Utilisateurs', churn: '📉 Churn', mrr: '📊 MRR', conversion: '🔄 Conversion' };
+    return labels[metric] || metric;
+}
+
+function getConditionLabel(condition) {
+    const labels = { above: '>', below: '<', equals: '=', change_percent: '±%' };
+    return labels[condition] || condition;
+}
+
+// ============== TEAM ==============
+async function loadTeam() {
+    const [members, invitations] = await Promise.all([
+        api('/team').catch(() => []),
+        api('/team/invitations').catch(() => [])
+    ]);
+    
+    const roleLabels = { super_admin: '👑 Super Admin', admin: '🔑 Admin', manager: '📊 Manager', viewer: '👁️ Viewer' };
+    const roleColors = { super_admin: 'var(--accent-purple)', admin: 'var(--accent-blue)', manager: 'var(--accent-green)', viewer: 'var(--text-muted)' };
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>👥 Gestion d'équipe</h1><p>${members.length} membre(s)</p></div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="openModal('inviteModal')">+ Inviter un membre</button>
+            </div>
+        </header>
+        
+        ${invitations.length > 0 ? `
+            <div class="card" style="margin-bottom:24px;padding:16px;border-left:3px solid var(--warning)">
+                <h4 style="margin-bottom:12px">📨 Invitations en attente (${invitations.length})</h4>
+                ${invitations.map(i => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+                        <div>
+                            <span style="font-weight:500">${i.email}</span>
+                            <span class="badge" style="margin-left:8px;background:${roleColors[i.role]};color:white">${roleLabels[i.role]}</span>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <span style="font-size:12px;color:var(--text-muted)">Expire ${timeAgo(i.expiresAt)}</span>
+                            <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="cancelInvitation('${i.id}')">Annuler</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+        
+        <div class="data-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Membre</th>
+                        <th>Rôle</th>
+                        <th>Statut</th>
+                        <th>Dernière connexion</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${members.map(m => `
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <div class="user-avatar" style="width:36px;height:36px;font-size:12px">${(m.firstName?.[0] || '') + (m.lastName?.[0] || '')}</div>
+                                    <div>
+                                        <div style="font-weight:500">${m.firstName || ''} ${m.lastName || ''}</div>
+                                        <div style="font-size:12px;color:var(--text-muted)">${m.email}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge" style="background:${roleColors[m.role]};color:white">${roleLabels[m.role] || m.role}</span></td>
+                            <td>${m.isActive ? '<span style="color:var(--success)">● Actif</span>' : '<span style="color:var(--text-muted)">○ Inactif</span>'}</td>
+                            <td style="color:var(--text-muted)">${m.lastLoginAt ? timeAgo(m.lastLoginAt) : 'Jamais'}</td>
+                            <td>
+                                ${m.role !== 'super_admin' && m.id !== currentAdmin?.id ? `
+                                    <div style="display:flex;gap:8px">
+                                        <button class="btn btn-sm btn-secondary" onclick="editMember('${m.id}', '${m.role}')">✏️</button>
+                                        <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="removeMember('${m.id}', '${m.firstName} ${m.lastName}')">🗑️</button>
+                                    </div>
+                                ` : (m.id === currentAdmin?.id ? '<span style="color:var(--text-muted);font-size:12px">Vous</span>' : '')}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    // Créer la modal d'invitation
+    if (!document.getElementById('inviteModal')) {
+        const modalHtml = `
+            <div class="modal-overlay" id="inviteModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Inviter un membre</h3>
+                        <button class="modal-close" onclick="closeModal('inviteModal')">×</button>
+                    </div>
+                    <form id="inviteForm" onsubmit="handleInvite(event)">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" name="email" placeholder="membre@exemple.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Rôle</label>
+                            <select class="form-input" name="role">
+                                <option value="viewer">👁️ Viewer - Lecture seule</option>
+                                <option value="manager">📊 Manager - Voir et modifier</option>
+                                <option value="admin">🔑 Admin - Accès complet (sauf gestion équipe)</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('inviteModal')">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Envoyer l'invitation</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+}
+
+async function handleInvite(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+        const result = await api('/team/invite', {
+            method: 'POST',
+            body: JSON.stringify({ email: form.email.value, role: form.role.value })
+        });
+        showToast('Invitation envoyée!', 'success');
+        closeModal('inviteModal');
+        form.reset();
+        loadTeam();
+        // Afficher le lien d'invitation
+        alert('Lien d\'invitation:\\n' + result.inviteUrl);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function cancelInvitation(id) {
+    try {
+        await api('/team/invitations/' + id, { method: 'DELETE' });
+        showToast('Invitation annulée', 'success');
+        loadTeam();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function editMember(id, currentRole) {
+    const newRole = prompt('Nouveau rôle (viewer, manager, admin):', currentRole);
+    if (!newRole || newRole === currentRole) return;
+    
+    try {
+        await api('/team/' + id, { method: 'PUT', body: JSON.stringify({ role: newRole }) });
+        showToast('Rôle modifié', 'success');
+        loadTeam();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function removeMember(id, name) {
+    showConfirm('Supprimer ' + name + '?', 'Cette personne n\'aura plus accès au dashboard.', async () => {
+        try {
+            await api('/team/' + id, { method: 'DELETE' });
+            showToast('Membre supprimé', 'success');
+            loadTeam();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
+
+// ============== INTEGRATIONS ==============
+async function loadIntegrations() {
+    const [integrations, available] = await Promise.all([
+        api('/integrations'),
+        api('/integrations/available')
+    ]);
+    
+    const connected = integrations.map(i => i.provider);
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>🔌 Intégrations</h1><p>Connectez vos services externes</p></div>
+        </header>
+        
+        ${integrations.length > 0 ? `
+            <h3 style="margin-bottom:16px">Connectées</h3>
+            <div class="data-grid" style="margin-bottom:32px">
+                ${integrations.map(i => `
+                    <div class="integration-card">
+                        <div class="integration-icon">${getProviderIcon(i.provider)}</div>
+                        <div class="integration-content">
+                            <div class="integration-name">${i.name}</div>
+                            <div class="integration-desc">
+                                ${i.syncStatus === 'syncing' ? '🔄 Synchronisation...' : 
+                                  i.lastSyncAt ? 'Dernière sync: ' + timeAgo(i.lastSyncAt) : 'Jamais synchronisé'}
+                                ${i.syncError ? '<br><span style="color:var(--danger)">Erreur: ' + i.syncError + '</span>' : ''}
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <span class="integration-status ${i.isActive ? 'connected' : 'disconnected'}">
+                                    ${i.isActive ? '● Connecté' : '○ Désactivé'}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                            <button class="btn btn-sm btn-primary" onclick="syncIntegration('${i.id}')" ${i.syncStatus === 'syncing' ? 'disabled' : ''}>
+                                🔄 Sync
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="viewIntegrationLogs('${i.id}')">📋 Logs</button>
+                            <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="deleteIntegration('${i.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+        
+        <h3 style="margin-bottom:16px">Disponibles</h3>
+        <div class="data-grid">
+            ${available.filter(a => !connected.includes(a.provider)).map(a => `
+                <div class="integration-card">
+                    <div class="integration-icon">${a.icon}</div>
+                    <div class="integration-content">
+                        <div class="integration-name">${a.name}</div>
+                        <div class="integration-desc">${a.description}</div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            ${a.features.map(f => `<span class="badge" style="background:var(--bg-tertiary);font-size:10px">${f}</span>`).join('')}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="connectIntegration('${a.provider}', '${a.name}', ${JSON.stringify(a.requiredFields).replace(/"/g, '&quot;')})">
+                        Connecter
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function getProviderIcon(provider) {
+    const icons = { stripe: '💳', paypal: '🅿️', gocardless: '🏦', google_analytics: '📊' };
+    return icons[provider] || '🔌';
+}
+
+async function connectIntegration(provider, name, requiredFields) {
+    const credentials = {};
+    for (const field of requiredFields) {
+        const label = field.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const value = prompt(label + ':');
+        if (!value) return;
+        credentials[field] = value;
+    }
+    
+    try {
+        await api('/integrations', {
+            method: 'POST',
+            body: JSON.stringify({ provider, name, credentials })
+        });
+        showToast(name + ' connecté!', 'success');
+        loadIntegrations();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function syncIntegration(id) {
+    showToast('Synchronisation en cours...', 'info');
+    try {
+        const result = await api('/integrations/' + id + '/sync', { method: 'POST' });
+        showToast(`Sync terminée: ${result.created} créés, ${result.updated} mis à jour`, 'success');
+        loadIntegrations();
+    } catch (err) {
+        showToast(err.message, 'error');
+        loadIntegrations();
+    }
+}
+
+async function viewIntegrationLogs(id) {
+    try {
+        const logs = await api('/integrations/' + id + '/logs');
+        const content = logs.length === 0 ? '<p>Aucun log</p>' : `
+            <table style="width:100%">
+                <thead><tr><th>Date</th><th>Action</th><th>Statut</th><th>Détails</th></tr></thead>
+                <tbody>
+                    ${logs.slice(0, 20).map(l => `
+                        <tr>
+                            <td>${timeAgo(l.createdAt)}</td>
+                            <td>${l.action}</td>
+                            <td>${l.status === 'success' ? '✅' : l.status === 'error' ? '❌' : '⏳'}</td>
+                            <td>${l.error || (l.processed + ' traités, ' + l.created + ' créés')}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        alert('Logs de synchronisation:\n\n' + logs.slice(0, 5).map(l => 
+            l.createdAt + ' - ' + l.status + ' - ' + (l.error || l.created + ' créés')
+        ).join('\n'));
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteIntegration(id) {
+    showConfirm('Supprimer cette intégration?', 'Les données importées seront conservées.', async () => {
+        try {
+            await api('/integrations/' + id, { method: 'DELETE' });
+            showToast('Intégration supprimée', 'success');
+            loadIntegrations();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
+
+// ============== RECHERCHE GLOBALE (Cmd+K) ==============
+let searchSelectedIndex = 0;
+let searchResults = [];
+
+function openSearch() {
+    document.getElementById('searchModal').classList.add('active');
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchInput').focus();
+    searchSelectedIndex = 0;
+    searchResults = [];
+}
+
+function closeSearch() {
+    document.getElementById('searchModal').classList.remove('active');
+}
+
+// Raccourci clavier Cmd+K / Ctrl+K
+document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openSearch();
+    }
+    if (e.key === 'Escape') {
+        closeSearch();
+    }
+    // Navigation dans les résultats
+    if (document.getElementById('searchModal').classList.contains('active')) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            searchSelectedIndex = Math.min(searchSelectedIndex + 1, searchResults.length - 1);
+            updateSearchSelection();
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            searchSelectedIndex = Math.max(searchSelectedIndex - 1, 0);
+            updateSearchSelection();
+        }
+        if (e.key === 'Enter' && searchResults.length > 0) {
+            e.preventDefault();
+            navigateToResult(searchResults[searchSelectedIndex]);
+        }
+    }
+});
+
+let searchTimeout;
+async function handleSearch(query) {
+    clearTimeout(searchTimeout);
+    
+    if (query.length < 2) {
+        document.getElementById('searchResults').innerHTML = '<div class="search-empty">Tapez pour rechercher des utilisateurs, paiements, sites...</div>';
+        searchResults = [];
+        return;
+    }
+    
+    document.getElementById('searchResults').innerHTML = '<div class="search-empty">Recherche en cours...</div>';
+    
+    searchTimeout = setTimeout(async () => {
+        try {
+            const data = await api('/search?q=' + encodeURIComponent(query));
+            searchResults = data.results || [];
+            searchSelectedIndex = 0;
+            renderSearchResults();
+        } catch (err) {
+            document.getElementById('searchResults').innerHTML = '<div class="search-empty">Erreur de recherche</div>';
+        }
+    }, 300);
+}
+
+function renderSearchResults() {
+    if (searchResults.length === 0) {
+        document.getElementById('searchResults').innerHTML = '<div class="search-empty">Aucun résultat trouvé</div>';
+        return;
+    }
+    
+    document.getElementById('searchResults').innerHTML = searchResults.map((r, i) => `
+        <div class="search-result ${i === searchSelectedIndex ? 'selected' : ''}" onclick="navigateToResult(searchResults[${i}])">
+            <div class="search-result-icon">${r.icon}</div>
+            <div class="search-result-content">
+                <div class="search-result-title">${escapeHtml(r.title)}</div>
+                <div class="search-result-subtitle">${escapeHtml(r.subtitle)}</div>
+            </div>
+            ${r.site ? `<span class="search-result-badge">${escapeHtml(r.site)}</span>` : ''}
+            <span class="search-result-badge">${r.type}</span>
+        </div>
+    `).join('');
+}
+
+function updateSearchSelection() {
+    document.querySelectorAll('.search-result').forEach((el, i) => {
+        el.classList.toggle('selected', i === searchSelectedIndex);
+    });
+}
+
+function navigateToResult(result) {
+    closeSearch();
+    switch (result.type) {
+        case 'user':
+            loadPage('users');
+            break;
+        case 'payment':
+            loadPage('payments');
+            break;
+        case 'site':
+            loadPage('sites');
+            setTimeout(() => showSiteDetail(result.id), 300);
+            break;
+        case 'subscription':
+            loadPage('subscriptions');
+            break;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============== RAPPORTS AVANCÉS ==============
+async function loadReportsAdvanced() {
+    const [scheduled, generated] = await Promise.all([
+        api('/reports/scheduled').catch(() => []),
+        api('/reports/generated').catch(() => [])
+    ]);
+    
+    // Cette fonction peut remplacer ou enrichir loadReports existante
+}
+
+async function generateReport() {
+    const reportType = prompt('Type de rapport (full, revenue, users, subscriptions):', 'full');
+    if (!reportType) return;
+    
+    const periodStart = prompt('Date début (YYYY-MM-DD):', new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0]);
+    if (!periodStart) return;
+    
+    const periodEnd = prompt('Date fin (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+    if (!periodEnd) return;
+    
+    showToast('Génération du rapport...', 'info');
+    
+    try {
+        const result = await api('/reports/generate', {
+            method: 'POST',
+            body: JSON.stringify({ reportType, periodStart, periodEnd, format: 'pdf' })
+        });
+        
+        // Ouvrir le HTML dans une nouvelle fenêtre pour impression/PDF
+        const win = window.open('', '_blank');
+        win.document.write(result.html);
+        win.document.close();
+        
+        showToast('Rapport généré!', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function createScheduledReport() {
+    const name = prompt('Nom du rapport:');
+    if (!name) return;
+    
+    const frequency = prompt('Fréquence (daily, weekly, monthly):', 'weekly');
+    if (!frequency) return;
+    
+    const email = prompt('Email destinataire:', currentAdmin?.email);
+    if (!email) return;
+    
+    try {
+        await api('/reports/scheduled', {
+            method: 'POST',
+            body: JSON.stringify({
+                name,
+                reportType: 'full',
+                frequency,
+                recipients: [email],
+                format: 'pdf'
+            })
+        });
+        showToast('Rapport programmé créé!', 'success');
+        loadPage('reports');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+// ============== CLÉS API ==============
+async function loadApiKeys() {
+    const keys = await api('/api-keys').catch(() => []);
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header">
+            <div><h1>🔑 Clés API</h1><p>Gérez vos clés d'accès à l'API publique</p></div>
+            <div class="header-right">
+                <a href="/docs" target="_blank" class="btn btn-secondary">📚 Documentation</a>
+                <button class="btn btn-primary" onclick="createApiKey()">+ Nouvelle clé</button>
+            </div>
+        </header>
+        
+        <div class="card" style="padding:20px;margin-bottom:24px;background:linear-gradient(135deg, #3b82f620, #8b5cf620);border:1px solid #3b82f640">
+            <h3 style="margin-bottom:8px">🚀 API REST Noteso</h3>
+            <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">
+                Intégrez Noteso dans vos applications. Envoyez des utilisateurs, paiements et événements depuis vos serveurs.
+            </p>
+            <code style="background:var(--bg-tertiary);padding:8px 12px;border-radius:6px;display:block;font-size:12px">
+                curl -H "Authorization: Bearer pk_xxx" https://noteso.fr/v1/stats
+            </code>
+        </div>
+        
+        ${keys.length === 0 ? `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔐</div>
+                <h3>Aucune clé API</h3>
+                <p>Créez votre première clé pour commencer à utiliser l'API</p>
+                <button class="btn btn-primary" onclick="createApiKey()">Créer une clé API</button>
+            </div>
+        ` : `
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Clé</th>
+                            <th>Permissions</th>
+                            <th>Limite</th>
+                            <th>Utilisation</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="apiKeysTableBody">
+                        ${keys.map(k => `
+                            <tr data-key-id="${k.id}">
+                                <td style="font-weight:500">${k.name}</td>
+                                <td><code style="background:var(--bg-tertiary);padding:4px 8px;border-radius:4px">${k.keyPrefix}...</code></td>
+                                <td>${(k.permissions || ['read']).map(p => `<span class="badge" style="margin-right:4px">${p}</span>`).join('')}</td>
+                                <td>${k.rateLimit}/h</td>
+                                <td>${k.usageCount.toLocaleString()} req</td>
+                                <td class="key-status-${k.id}">
+                                    ${k.isActive 
+                                        ? '<span style="color:var(--success)">● Active</span>' 
+                                        : '<span style="color:var(--text-muted)">○ Inactive</span>'}
+                                </td>
+                                <td class="key-actions-${k.id}">
+                                    <div style="display:flex;gap:8px">
+                                        <button class="btn btn-sm btn-secondary" onclick="toggleApiKey('${k.id}', ${!k.isActive})">
+                                            ${k.isActive ? '⏸️' : '▶️'}
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="deleteApiKey('${k.id}')">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `}
+        
+        <div class="settings-section" style="margin-top:32px">
+            <h3 class="settings-title">📖 Endpoints disponibles</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px">
+                <div class="card" style="padding:16px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <span style="background:#22c55e20;color:#22c55e;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600">GET</span>
+                        <code>/v1/stats</code>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-muted)">Statistiques globales</p>
+                </div>
+                <div class="card" style="padding:16px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <span style="background:#3b82f620;color:#3b82f6;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600">POST</span>
+                        <code>/v1/users</code>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-muted)">Créer un utilisateur</p>
+                </div>
+                <div class="card" style="padding:16px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <span style="background:#3b82f620;color:#3b82f6;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600">POST</span>
+                        <code>/v1/payments</code>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-muted)">Enregistrer un paiement</p>
+                </div>
+                <div class="card" style="padding:16px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <span style="background:#3b82f620;color:#3b82f6;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600">POST</span>
+                        <code>/v1/events</code>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-muted)">Événement personnalisé</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function createApiKey() {
+    // Éviter les doublons
+    const existingModal = document.getElementById('createApiKeyModal');
+    if (existingModal) existingModal.remove();
+    
+    // Modal de création
+    const modalHtml = `
+        <div class="modal-overlay active" id="createApiKeyModal" onclick="if(event.target === this) closeModal('createApiKeyModal')" style="z-index:9500">
+            <div class="modal" style="max-width:480px;margin:auto">
+                <div class="modal-header">
+                    <h3 class="modal-title">🔑 Nouvelle clé API</h3>
+                    <button class="modal-close" onclick="closeModal('createApiKeyModal')">×</button>
+                </div>
+                <form id="createApiKeyForm" onsubmit="submitApiKeyForm(event)">
+                    <div class="form-group">
+                        <label class="form-label">Nom de la clé</label>
+                        <input type="text" class="form-input" id="apiKeyName" placeholder="Ex: Production, Mobile App..." required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Permissions</label>
+                        <div style="display:flex;gap:16px">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                                <input type="checkbox" id="apiKeyRead" checked> Lecture
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                                <input type="checkbox" id="apiKeyWrite" checked> Écriture
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Limite de requêtes (par heure)</label>
+                        <select class="form-input" id="apiKeyLimit">
+                            <option value="100">100 / heure</option>
+                            <option value="500">500 / heure</option>
+                            <option value="1000" selected>1 000 / heure</option>
+                            <option value="5000">5 000 / heure</option>
+                            <option value="10000">10 000 / heure</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('createApiKeyModal')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Créer la clé</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    setTimeout(() => document.getElementById('apiKeyName')?.focus(), 100);
+}
+
+async function submitApiKeyForm(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('apiKeyName').value;
+    const permissions = [];
+    if (document.getElementById('apiKeyRead').checked) permissions.push('read');
+    if (document.getElementById('apiKeyWrite').checked) permissions.push('write');
+    const rateLimit = parseInt(document.getElementById('apiKeyLimit').value);
+    
+    try {
+        const result = await api('/api-keys', {
+            method: 'POST',
+            body: JSON.stringify({ name, permissions, rateLimit })
+        });
+        
+        closeModal('createApiKeyModal');
+        showApiKeyModal(result.key, name);
+        // loadApiKeys sera appelé à la fermeture du modal de succès
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showApiKeyModal(key, name) {
+    // Éviter les doublons
+    const existingModal = document.getElementById('showApiKeyModal');
+    if (existingModal) existingModal.remove();
+    
+    const modalHtml = `
+        <div class="modal-overlay active" id="showApiKeyModal" style="z-index:9500">
+            <div class="modal" style="max-width:520px;margin:auto">
+                <div style="text-align:center;padding:24px 0">
+                    <div style="width:72px;height:72px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px;color:white">
+                        ✓
+                    </div>
+                    <h2 style="margin-bottom:8px">Clé API créée !</h2>
+                    <p style="color:var(--text-muted);font-size:14px">Clé "<strong>${escapeHtml(name)}</strong>" créée avec succès</p>
+                </div>
+                
+                <div style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                        <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Votre clé API</span>
+                        <button class="btn btn-sm btn-secondary" onclick="copyApiKey('${key}')" id="copyApiKeyBtn" style="gap:6px">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copier
+                        </button>
+                    </div>
+                    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'SF Mono',Monaco,monospace;font-size:13px;word-break:break-all;color:var(--accent-blue)" id="apiKeyDisplay">
+                        ${key}
+                    </div>
+                </div>
+                
+                <div style="background:#f59e0b15;border:1px solid #f59e0b40;border-radius:8px;padding:14px 16px;margin-bottom:24px">
+                    <div style="display:flex;gap:10px;align-items:flex-start">
+                        <span style="font-size:18px">⚠️</span>
+                        <div style="font-size:13px;color:#f59e0b">
+                            <strong>Important :</strong> Conservez cette clé précieusement.<br>
+                            Elle ne sera <strong>plus jamais affichée</strong> après fermeture de cette fenêtre.
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px" onclick="closeApiKeySuccessModal()">
+                    J'ai copié ma clé, fermer
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeApiKeySuccessModal() {
+    closeModal('showApiKeyModal');
+    loadApiKeys();
+}
+
+async function copyApiKey(key) {
+    try {
+        await navigator.clipboard.writeText(key);
+        
+        const btn = document.getElementById('copyApiKeyBtn');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Copié !`;
+        btn.style.color = 'var(--success)';
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.style.color = '';
+        }, 2000);
+        
+        showToast('Clé copiée dans le presse-papier', 'success');
+    } catch (err) {
+        // Fallback pour les navigateurs qui ne supportent pas clipboard API
+        const el = document.getElementById('apiKeyDisplay');
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand('copy');
+        sel.removeAllRanges();
+        showToast('Clé copiée', 'success');
+    }
+}
+
+async function toggleApiKey(id, active) {
+    try {
+        await api('/api-keys/' + id, {
+            method: 'PUT',
+            body: JSON.stringify({ isActive: active })
+        });
+        
+        // Mise à jour AJAX du statut
+        const statusCell = document.querySelector(`.key-status-${id}`);
+        if (statusCell) {
+            statusCell.innerHTML = active 
+                ? '<span style="color:var(--success)">● Active</span>' 
+                : '<span style="color:var(--text-muted)">○ Inactive</span>';
+        }
+        
+        // Mise à jour AJAX du bouton
+        const actionsCell = document.querySelector(`.key-actions-${id}`);
+        if (actionsCell) {
+            actionsCell.innerHTML = `
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-sm btn-secondary" onclick="toggleApiKey('${id}', ${!active})">
+                        ${active ? '⏸️' : '▶️'}
+                    </button>
+                    <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="deleteApiKey('${id}')">🗑️</button>
+                </div>
+            `;
+        }
+        
+        showToast(active ? 'Clé activée' : 'Clé désactivée', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteApiKey(id) {
+    showConfirm('Supprimer cette clé API?', 'Les applications utilisant cette clé ne pourront plus accéder à l\'API.', async () => {
+        try {
+            await api('/api-keys/' + id, { method: 'DELETE' });
+            
+            // Suppression AJAX de la ligne
+            const row = document.querySelector(`tr[data-key-id="${id}"]`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s, transform 0.3s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-20px)';
+                setTimeout(() => row.remove(), 300);
+            }
+            
+            showToast('Clé supprimée', 'success');
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
+
+// ============== TEMPS RÉEL ==============
+let realtimeInterval = null;
+let lastEventTimestamp = null;
+
+function startRealtimeUpdates() {
+    if (realtimeInterval) return;
+    
+    // Polling toutes les 10 secondes
+    realtimeInterval = setInterval(async () => {
+        try {
+            const params = lastEventTimestamp ? `?since=${encodeURIComponent(lastEventTimestamp)}` : '';
+            const data = await api('/realtime/events' + params);
+            
+            if (data.events && data.events.length > 0) {
+                lastEventTimestamp = data.timestamp;
+                
+                data.events.forEach(event => {
+                    handleRealtimeEvent(event);
+                });
+            }
+        } catch (err) {
+            console.log('Realtime update failed:', err);
+        }
+    }, 10000);
+    
+    console.log('🔴 Temps réel activé');
+}
+
+function stopRealtimeUpdates() {
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+        realtimeInterval = null;
+        console.log('⚪ Temps réel désactivé');
+    }
+}
+
+function handleRealtimeEvent(event) {
+    // Notification toast pour les événements importants
+    switch (event.type) {
+        case 'payment_received':
+            showToast(`💰 Nouveau paiement: ${event.data.amount} ${event.data.currency}`, 'success');
+            break;
+        case 'user_created':
+            showToast(`👤 Nouvel utilisateur: ${event.data.email}`, 'info');
+            break;
+        case 'subscription_created':
+            showToast(`🔄 Nouvel abonnement: ${event.data.plan}`, 'success');
+            break;
+        case 'alert_triggered':
+            showToast(`🚨 Alerte: ${event.data.message}`, 'warning');
+            break;
+    }
+    
+    // Rafraîchir la page si on est sur overview
+    if (currentPage === 'overview') {
+        // Mettre à jour les stats sans recharger toute la page
+        updateRealtimeStats();
+    }
+}
+
+async function updateRealtimeStats() {
+    try {
+        const stats = await api('/realtime/stats');
+        
+        // Mettre à jour les éléments si ils existent
+        const todayRevenue = document.getElementById('todayRevenue');
+        if (todayRevenue) {
+            todayRevenue.textContent = formatCurrency(stats.todayRevenue);
+        }
+    } catch (err) {
+        console.log('Stats update failed:', err);
+    }
+}
+
+// ============== PWA ==============
+let deferredPrompt = null;
+
+// Enregistrer le Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('✅ Service Worker enregistré:', registration.scope);
+        } catch (err) {
+            console.log('❌ Service Worker erreur:', err);
+        }
+    });
+}
+
+// Capturer l'événement d'installation
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Afficher un bouton d'installation dans les settings
+    const installBtn = document.getElementById('installPwaBtn');
+    if (installBtn) {
+        installBtn.style.display = 'block';
+    }
+});
+
+async function installPwa() {
+    if (!deferredPrompt) {
+        showToast('L\'application est déjà installée ou non disponible', 'info');
+        return;
+    }
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+        showToast('Application installée!', 'success');
+    }
+    
+    deferredPrompt = null;
+}
+
+// Détecter si on est en mode standalone (PWA)
+function isPwa() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone === true;
+}
+
+// ============== SETTINGS ==============
+async function loadSettings() {
+    const [settings, twoFAStatus, sessions, loginHistory] = await Promise.all([
+        api('/settings'),
+        api('/auth/2fa/status').catch(() => ({ enabled: false })),
+        api('/auth/sessions').catch(() => []),
+        api('/security/login-history?limit=10').catch(() => [])
+    ]);
+    
+    const currentToken = authToken;
+    const currentSession = sessions.find(s => s.isCurrent);
+    const otherSessions = sessions.filter(s => !s.isCurrent);
+    
+    document.getElementById('mainContent').innerHTML = `
+        <header class="header"><div><h1>⚙️ Paramètres</h1><p>Configuration de votre compte</p></div></header>
+        
+        <!-- 2FA Section -->
+        <div class="settings-section">
+            <h3 class="settings-title">🔐 Authentification à deux facteurs</h3>
+            ${twoFAStatus.enabled ? `
+                <div style="display:flex;align-items:center;gap:12px;padding:16px;background:rgba(34,197,94,0.1);border:1px solid var(--success);border-radius:10px;margin-bottom:16px">
+                    <div style="font-size:24px">✅</div>
+                    <div style="flex:1">
+                        <div style="font-weight:600;color:var(--success)">2FA Activé</div>
+                        <div style="font-size:12px;color:var(--text-secondary)">Votre compte est protégé</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap">
+                    <button class="btn btn-secondary" onclick="regenerateBackupCodes()">🔑 Codes de secours</button>
+                    <button class="btn btn-secondary" style="color:var(--danger)" onclick="disable2FA()">Désactiver</button>
+                </div>
+            ` : `
+                <div style="display:flex;align-items:center;gap:12px;padding:16px;background:rgba(234,179,8,0.1);border:1px solid var(--warning);border-radius:10px;margin-bottom:16px">
+                    <div style="font-size:24px">⚠️</div>
+                    <div style="flex:1">
+                        <div style="font-weight:600;color:var(--warning)">2FA Non activé</div>
+                        <div style="font-size:12px;color:var(--text-secondary)">Protégez votre compte avec l'authentification à deux facteurs</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="setup2FA()">🔐 Activer le 2FA</button>
+            `}
+        </div>
+        
+        <!-- Sessions Section -->
+        <div class="settings-section">
+            <h3 class="settings-title">📱 Sessions actives (${sessions.length})</h3>
+            ${currentSession ? `
+                <div style="background:var(--bg-tertiary);border-radius:10px;padding:16px;margin-bottom:16px;border-left:3px solid var(--success)">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <div style="font-weight:600;margin-bottom:4px">${getDeviceIcon(currentSession.deviceType)} ${currentSession.deviceName || 'Cet appareil'} <span style="color:var(--success);font-size:11px">(actuel)</span></div>
+                            <div style="font-size:12px;color:var(--text-muted)">IP: ${currentSession.ip} • ${timeAgo(currentSession.createdAt)}</div>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            ${otherSessions.length > 0 ? `
+                ${otherSessions.map(s => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+                        <div>
+                            <div style="font-weight:500;margin-bottom:2px">${getDeviceIcon(s.deviceType)} ${s.deviceName || 'Appareil'}</div>
+                            <div style="font-size:12px;color:var(--text-muted)">IP: ${s.ip} • ${timeAgo(s.lastActivity || s.createdAt)}</div>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" style="color:var(--danger)" onclick="revokeSession('${s.id}')">Déconnecter</button>
+                    </div>
+                `).join('')}
+                <div style="margin-top:16px">
+                    <button class="btn btn-secondary" onclick="revokeAllSessions()">🚫 Déconnecter tous les autres</button>
+                </div>
+            ` : '<p style="color:var(--text-muted);font-size:13px;padding:12px 0">Aucune autre session active</p>'}
+        </div>
+        
+        <!-- Login History -->
+        <div class="settings-section">
+            <h3 class="settings-title">📋 Historique de connexion</h3>
+            ${loginHistory.length === 0 ? '<p style="color:var(--text-muted)">Aucun historique</p>' : `
+                <div style="max-height:250px;overflow-y:auto">
+                    ${loginHistory.map(h => `
+                        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+                            <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;background:${h.success ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}">${h.success ? '✓' : '✗'}</div>
+                            <div style="flex:1">
+                                <div style="font-size:13px">${h.success ? 'Connexion réussie' : 'Tentative échouée'}</div>
+                                <div style="font-size:11px;color:var(--text-muted)">${h.ip} • ${timeAgo(h.createdAt)}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `}
+        </div>
+        
+        <!-- Apparence -->
+        <div class="settings-section">
+            <h3 class="settings-title">🎨 Apparence</h3>
+            <div class="settings-row">
+                <div class="settings-info"><h4>Thème sombre</h4><p>Activer le mode sombre</p></div>
+                <label class="toggle">
+                    <input type="checkbox" ${document.documentElement.getAttribute('data-theme') !== 'light' ? 'checked' : ''} onchange="document.documentElement.setAttribute('data-theme', this.checked ? '' : 'light'); localStorage.setItem('theme', this.checked ? 'dark' : 'light')">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Compte -->
+        <div class="settings-section">
+            <h3 class="settings-title">👤 Compte</h3>
+            <div class="settings-row">
+                <div class="settings-info"><h4>Email</h4><p>${currentAdmin?.email || 'N/A'}</p></div>
+            </div>
+            <div class="settings-row">
+                <div class="settings-info"><h4>Nom</h4><p>${currentAdmin?.firstName || ''} ${currentAdmin?.lastName || ''}</p></div>
+            </div>
+            <div class="settings-row">
+                <div class="settings-info"><h4>Rôle</h4><p>${currentAdmin?.role === 'super_admin' ? 'Super Admin' : 'Admin'}</p></div>
+            </div>
+        </div>
+        
+        <!-- Déconnexion -->
+        <div class="settings-section">
+            <h3 class="settings-title">🚪 Session</h3>
+            <div class="settings-row">
+                <div class="settings-info"><h4>Déconnexion</h4><p>Fermer votre session</p></div>
+                <button class="btn btn-danger" onclick="handleLogout()">Se déconnecter</button>
+            </div>
+        </div>
+    `;
+}
+
+// ============== 2FA FUNCTIONS ==============
+
+let twoFactorSetupData = null;
+
+async function setup2FA() {
+    try {
+        const data = await api('/auth/2fa/setup', { method: 'POST' });
+        twoFactorSetupData = data;
+        show2FASetupModal(data);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function show2FASetupModal(data) {
+    // Créer la modal si elle n'existe pas
+    if (!document.getElementById('twoFactorSetupModal')) {
+        const modalHtml = `
+            <div class="modal-overlay" id="twoFactorSetupModal">
+                <div class="modal large">
+                    <div class="modal-header">
+                        <h3 class="modal-title">🔐 Configuration 2FA</h3>
+                        <button class="modal-close" onclick="closeModal('twoFactorSetupModal')">×</button>
+                    </div>
+                    <div id="setup2FAStep1">
+                        <div style="text-align:center;margin-bottom:24px">
+                            <p style="color:var(--text-secondary);margin-bottom:16px">Scannez ce QR code avec Google Authenticator ou Authy</p>
+                            <div id="qrCodeContainer" style="display:inline-block;padding:8px;background:white;border-radius:8px"></div>
+                        </div>
+                        <div style="text-align:center;margin-bottom:24px">
+                            <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Ou entrez cette clé manuellement :</p>
+                            <code id="secretKey" style="background:var(--bg-tertiary);padding:8px 16px;border-radius:4px;font-size:14px;letter-spacing:2px"></code>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Code de vérification</label>
+                            <input type="text" class="form-input" id="verify2FACode" placeholder="000000" maxlength="6" style="text-align:center;font-size:24px;letter-spacing:8px">
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" onclick="closeModal('twoFactorSetupModal')">Annuler</button>
+                            <button class="btn btn-primary" onclick="verify2FASetup()">Vérifier et Activer</button>
+                        </div>
+                    </div>
+                    <div id="setup2FAStep2" style="display:none">
+                        <div style="text-align:center;margin-bottom:24px">
+                            <div style="font-size:48px;margin-bottom:16px">✅</div>
+                            <h3 style="margin-bottom:8px">2FA Activé!</h3>
+                            <p style="color:var(--text-secondary)">Conservez ces codes de secours</p>
+                        </div>
+                        <div id="backupCodesList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:24px"></div>
+                        <div style="background:var(--warning);color:black;padding:12px;border-radius:8px;font-size:13px;margin-bottom:16px">
+                            ⚠️ Ces codes ne seront plus affichés!
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-primary" onclick="closeModal('twoFactorSetupModal');loadSettings()">Terminé</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    
+    // Générer le QR code avec qrcodejs
+    const otpauthUrl = data.otpauth || `otpauth://totp/Noteso:${currentAdmin?.email}?secret=${data.secret}&issuer=Noteso&algorithm=SHA1&digits=6&period=30`;
+    const container = document.getElementById('qrCodeContainer');
+    container.innerHTML = ''; // Vider le conteneur
+    
+    new QRCode(container, {
+        text: otpauthUrl,
+        width: 180,
+        height: 180,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.L
+    });
+    
+    document.getElementById('secretKey').textContent = data.secret;
+    document.getElementById('backupCodesList').innerHTML = data.backupCodes.map(c => 
+        `<div style="font-family:monospace;background:var(--bg-tertiary);padding:8px;border-radius:4px;text-align:center">${c}</div>`
+    ).join('');
+    document.getElementById('setup2FAStep1').style.display = 'block';
+    document.getElementById('setup2FAStep2').style.display = 'none';
+    
+    openModal('twoFactorSetupModal');
+}
+
+async function verify2FASetup() {
+    const code = document.getElementById('verify2FACode').value.replace(/\s/g, '');
+    
+    if (!code || code.length !== 6) {
+        showToast('Entrez un code à 6 chiffres', 'error');
+        return;
+    }
+    
+    try {
+        await api('/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ code }) });
+        document.getElementById('setup2FAStep1').style.display = 'none';
+        document.getElementById('setup2FAStep2').style.display = 'block';
+        showToast('2FA activé!', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+        document.getElementById('verify2FACode').value = '';
+    }
+}
+
+async function disable2FA() {
+    const password = prompt('Entrez votre mot de passe pour désactiver le 2FA:');
+    if (!password) return;
+    
+    try {
+        await api('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ password }) });
+        showToast('2FA désactivé', 'success');
+        loadSettings();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function regenerateBackupCodes() {
+    showConfirm('Régénérer les codes', 'Les anciens codes seront invalidés', async () => {
+        try {
+            const data = await api('/auth/2fa/backup-codes');
+            alert('Nouveaux codes de secours:\\n\\n' + data.backupCodes.join('\\n'));
+            showToast('Codes régénérés', 'success');
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
+
+// ============== SESSIONS FUNCTIONS ==============
+
+async function revokeSession(sessionId) {
+    try {
+        await api('/auth/sessions/' + sessionId, { method: 'DELETE' });
+        showToast('Session révoquée', 'success');
+        loadSettings();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function revokeAllSessions() {
+    showConfirm('Déconnecter tous les appareils', 'Vous resterez connecté sur cet appareil', async () => {
+        try {
+            await api('/auth/sessions', { method: 'DELETE' });
+            showToast('Sessions révoquées', 'success');
+            loadSettings();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
+
+function getDeviceIcon(type) {
+    switch(type) {
+        case 'mobile': return '📱';
+        case 'tablet': return '📱';
+        case 'desktop': return '💻';
+        default: return '🌐';
+    }
+}
+
+// ============== INIT ==============
+(async function() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    checkResetToken();
+    if (await checkAuth()) showApp();
+})();
+</script>
+</body>
+</html>

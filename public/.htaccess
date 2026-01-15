@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Redirect API requests to api.php
+RewriteCond %{REQUEST_URI} ^/api/(.*)$
+RewriteRule ^api/(.*)$ api.php/$1 [L,QSA]
+
+# Serve index.html for all other requests (SPA)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L]
