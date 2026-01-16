@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOTESO • Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --bg-card: linear-gradient(145deg, #14141e 0%, #0f0f18 100%);
+            --bg-card-hover: linear-gradient(145deg, #1a1a28 0%, #141420 100%);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-active: rgba(99, 102, 241, 0.4);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 40px var(--accent-glow);
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html { font-size: 14px; scroll-behavior: smooth; }
+        
+        body {
+            font-family: 'Outfit', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Performance: GPU-accelerated animations */
+        .gpu-accelerated {
+            transform: translateZ(0);
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Layout */
+        .app { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: transform var(--transition-base);
+        }
+
+        .logo {
+            padding: 24px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-badge {
+            font-size: 0.65rem;
+            background: var(--accent-glow);
+            color: var(--accent-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 0 12px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, var(--accent-glow) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .nav-item:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .nav-item.active {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .nav-item.active::before { opacity: 1; }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .nav-icon { font-size: 1.15rem; width: 24px; text-align: center; position: relative; z-index: 1; }
+        .nav-text { font-weight: 500; position: relative; z-index: 1; }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            margin-left: 260px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 20px; }
+
+        .page-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--success-bg);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .header-right { display: flex; align-items: center; gap: 12px; }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 9px 14px;
+            min-width: 240px;
+            transition: all var(--transition-fast);
+        }
+
+        .search-box:focus-within {
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-box input {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            width: 100%;
+            outline: none;
+        }
+
+        .search-box input::placeholder { color: var(--text-muted); }
+        .search-icon { color: var(--text-muted); font-size: 0.95rem; }
+
+        .kbd {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-active);
+            color: var(--text-primary);
+        }
+
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            justify-content: center;
+            border-radius: var(--radius-md);
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 28px;
+            background: var(--bg-primary);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-base);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--border-active);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card:hover::before { opacity: 1; }
+
+        .stat-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .stat-icon.blue { background: rgba(99, 102, 241, 0.15); }
+        .stat-icon.green { background: var(--success-bg); }
+        .stat-icon.yellow { background: var(--warning-bg); }
+        .stat-icon.purple { background: rgba(168, 85, 247, 0.15); }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .stat-trend.up { background: var(--success-bg); color: var(--success); }
+        .stat-trend.down { background: var(--danger-bg); color: var(--danger); }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Grid Layout */
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body { padding: 22px; }
+        .card-body.no-padding { padding: 0; }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+
+        /* Sites List */
+        .sites-list { display: flex; flex-direction: column; }
+
+        .site-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+            transition: background var(--transition-fast);
+            cursor: pointer;
+        }
+
+        .site-item:last-child { border-bottom: none; }
+        .site-item:hover { background: var(--bg-tertiary); }
+
+        .site-favicon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .site-info { flex: 1; min-width: 0; }
+
+        .site-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .site-url {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .site-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .site-stat {
+            text-align: right;
+        }
+
+        .site-stat-value {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .site-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Status Badges */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status.online { background: var(--success-bg); color: var(--success); }
+        .status.online .status-dot { background: var(--success); }
+        .status.offline { background: var(--danger-bg); color: var(--danger); }
+        .status.offline .status-dot { background: var(--danger); }
+        .status.maintenance { background: var(--warning-bg); color: var(--warning); }
+        .status.maintenance .status-dot { background: var(--warning); }
+
+        /* Activity Feed */
+        .activity-item {
+            display: flex;
+            gap: 14px;
+            padding: 14px 22px;
+            border-bottom: 1px solid var(--border);
+            transition: background var(--transition-fast);
+        }
+
+        .activity-item:last-child { border-bottom: none; }
+        .activity-item:hover { background: var(--bg-tertiary); }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.signup { background: rgba(99, 102, 241, 0.15); }
+        .activity-icon.payment { background: var(--success-bg); }
+        .activity-icon.churn { background: var(--danger-bg); }
+
+        .activity-content { flex: 1; min-width: 0; }
+
+        .activity-text {
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+        }
+
+        .activity-text strong { font-weight: 600; }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width var(--transition-slow);
+        }
+
+        .progress-fill.blue { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+        .progress-fill.green { background: var(--success); }
+        .progress-fill.yellow { background: var(--warning); }
+
+        /* Table */
+        .table-container { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        tr:hover td { background: var(--bg-tertiary); }
+
+        /* Virtual Scroll Container */
+        .virtual-list {
+            height: 400px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .virtual-list-content {
+            position: relative;
+        }
+
+        .virtual-list-item {
+            position: absolute;
+            left: 0;
+            right: 0;
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-md);
+            animation: slideIn 0.3s ease-out;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        .toast.warning { border-left: 3px solid var(--warning); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-base);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            transform: scale(0.95) translateY(20px);
+            transition: transform var(--transition-base);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title { font-size: 1.15rem; font-weight: 600; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color var(--transition-fast);
+            line-height: 1;
+        }
+
+        .modal-close:hover { color: var(--text-primary); }
+
+        .modal-body { padding: 24px; }
+
+        /* Form */
+        .form-group { margin-bottom: 18px; }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all var(--transition-fast);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-input::placeholder { color: var(--text-muted); }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .header { padding: 14px 16px; }
+            .content { padding: 16px; }
+            .search-box { display: none; }
+        }
+
+        /* Performance indicator */
+        .perf-indicator {
+            position: fixed;
+            bottom: 16px;
+            left: 276px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 8px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            z-index: 50;
+            display: flex;
+            gap: 16px;
+        }
+
+        .perf-metric { display: flex; align-items: center; gap: 6px; }
+        .perf-metric .label { opacity: 0.7; }
+        .perf-metric .value { color: var(--success); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo, useRef, memo, createContext, useContext } = React;
+
+        // ============== CONFIGURATION ==============
+        const API_BASE = '/api';
+        const CACHE_DURATION = 30000; // 30 secondes
+        const DEBOUNCE_DELAY = 300;
+
+        // ============== CACHE SYSTEM ==============
+        class CacheManager {
+            constructor() {
+                this.cache = new Map();
+                this.pending = new Map();
+            }
+
+            get(key) {
+                const item = this.cache.get(key);
+                if (!item) return null;
+                if (Date.now() > item.expiry) {
+                    this.cache.delete(key);
+                    return null;
+                }
+                return item.data;
+            }
+
+            set(key, data, duration = CACHE_DURATION) {
+                this.cache.set(key, {
+                    data,
+                    expiry: Date.now() + duration
+                });
+            }
+
+            invalidate(pattern) {
+                for (const key of this.cache.keys()) {
+                    if (key.includes(pattern)) {
+                        this.cache.delete(key);
+                    }
+                }
+            }
+
+            async fetchWithCache(key, fetcher, duration = CACHE_DURATION) {
+                // Check cache first
+                const cached = this.get(key);
+                if (cached) return cached;
+
+                // Deduplicate concurrent requests
+                if (this.pending.has(key)) {
+                    return this.pending.get(key);
+                }
+
+                const promise = fetcher().then(data => {
+                    this.set(key, data, duration);
+                    this.pending.delete(key);
+                    return data;
+                }).catch(err => {
+                    this.pending.delete(key);
+                    throw err;
+                });
+
+                this.pending.set(key, promise);
+                return promise;
+            }
+        }
+
+        const cache = new CacheManager();
+
+        // ============== API HELPERS ==============
+        const api = async (endpoint, options = {}) => {
+            const start = performance.now();
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Track performance
+                const duration = performance.now() - start;
+                window.dispatchEvent(new CustomEvent('api-response', { 
+                    detail: { endpoint, duration } 
+                }));
+
+                return data;
+            } catch (error) {
+                console.error(`API Error [${endpoint}]:`, error);
+                throw error;
+            }
+        };
+
+        // Cached API call
+        const cachedApi = (endpoint, duration) => {
+            return cache.fetchWithCache(endpoint, () => api(endpoint), duration);
+        };
+
+        // ============== HOOKS ==============
+        const useDebounce = (value, delay = DEBOUNCE_DELAY) => {
+            const [debouncedValue, setDebouncedValue] = useState(value);
+
+            useEffect(() => {
+                const timer = setTimeout(() => setDebouncedValue(value), delay);
+                return () => clearTimeout(timer);
+            }, [value, delay]);
+
+            return debouncedValue;
+        };
+
+        const usePerformance = () => {
+            const [metrics, setMetrics] = useState({ fps: 60, apiTime: 0, renderTime: 0 });
+            const frameCount = useRef(0);
+            const lastTime = useRef(performance.now());
+
+            useEffect(() => {
+                let animationId;
+                
+                const measureFPS = () => {
+                    frameCount.current++;
+                    const now = performance.now();
+                    
+                    if (now - lastTime.current >= 1000) {
+                        setMetrics(m => ({
+                            ...m,
+                            fps: Math.round(frameCount.current * 1000 / (now - lastTime.current))
+                        }));
+                        frameCount.current = 0;
+                        lastTime.current = now;
+                    }
+                    
+                    animationId = requestAnimationFrame(measureFPS);
+                };
+
+                const handleApiResponse = (e) => {
+                    setMetrics(m => ({ ...m, apiTime: Math.round(e.detail.duration) }));
+                };
+
+                window.addEventListener('api-response', handleApiResponse);
+                animationId = requestAnimationFrame(measureFPS);
+
+                return () => {
+                    cancelAnimationFrame(animationId);
+                    window.removeEventListener('api-response', handleApiResponse);
+                };
+            }, []);
+
+            return metrics;
+        };
+
+        // ============== CONTEXT ==============
+        const AppContext = createContext();
+
+        const useApp = () => useContext(AppContext);
+
+        // ============== COMPONENTS ==============
+
+        // Skeleton Loader
+        const Skeleton = memo(({ width = '100%', height = '20px', className = '' }) => (
+            <div className={`skeleton ${className}`} style={{ width, height }} />
+        ));
+
+        // Toast System
+        const ToastContainer = memo(({ toasts, onRemove }) => (
+            <div className="toast-container">
+                {toasts.map(toast => (
+                    <div key={toast.id} className={`toast ${toast.type}`}>
+                        <span>{toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : '⚠'}</span>
+                        <span style={{ flex: 1 }}>{toast.message}</span>
+                        <button 
+                            onClick={() => onRemove(toast.id)}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                ))}
+            </div>
+        ));
+
+        // Stat Card
+        const StatCard = memo(({ icon, iconClass, value, label, trend, loading }) => (
+            <div className="stat-card gpu-accelerated">
+                <div className="stat-header">
+                    <div className={`stat-icon ${iconClass}`}>{icon}</div>
+                    {trend !== undefined && (
+                        <span className={`stat-trend ${trend >= 0 ? 'up' : 'down'}`}>
+                            {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
+                        </span>
+                    )}
+                </div>
+                {loading ? (
+                    <>
+                        <Skeleton height="32px" width="60%" style={{ marginBottom: '8px' }} />
+                        <Skeleton height="16px" width="40%" />
+                    </>
+                ) : (
+                    <>
+                        <div className="stat-value">{value}</div>
+                        <div className="stat-label">{label}</div>
+                    </>
+                )}
+            </div>
+        ));
+
+        // Site Item
+        const SiteItem = memo(({ site, onClick }) => (
+            <div className="site-item" onClick={() => onClick(site)}>
+                <div className="site-favicon">
+                    {site.favicon || site.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="site-info">
+                    <div className="site-name">{site.name}</div>
+                    <div className="site-url">{site.domain}</div>
+                </div>
+                <div className="site-stats">
+                    <div className="site-stat">
+                        <div className="site-stat-value">{site.users?.toLocaleString() || 0}</div>
+                        <div className="site-stat-label">Users</div>
+                    </div>
+                    <div className="site-stat">
+                        <div className="site-stat-value">{site.revenue?.toLocaleString() || 0}€</div>
+                        <div className="site-stat-label">Revenue</div>
+                    </div>
+                </div>
+                <span className={`status ${site.status}`}>
+                    <span className="status-dot"></span>
+                    {site.status}
+                </span>
+            </div>
+        ));
+
+        // Activity Item
+        const ActivityItem = memo(({ activity }) => {
+            const icons = {
+                signup: { icon: '👤', class: 'signup' },
+                payment: { icon: '💳', class: 'payment' },
+                churn: { icon: '📉', class: 'churn' }
+            };
+
+            const { icon, class: iconClass } = icons[activity.type] || icons.signup;
+
+            return (
+                <div className="activity-item">
+                    <div className={`activity-icon ${iconClass}`}>{icon}</div>
+                    <div className="activity-content">
+                        <div className="activity-text">
+                            <strong>{activity.description}</strong>
+                        </div>
+                        <div className="activity-time">{activity.timeAgo}</div>
+                    </div>
+                </div>
+            );
+        });
+
+        // Revenue Chart
+        const RevenueChart = memo(({ data }) => {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data?.length) return;
+
+                const ctx = canvasRef.current.getContext('2d');
+
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.date),
+                        datasets: [{
+                            label: 'Revenus',
+                            data: data.map(d => d.amount),
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointHoverBackgroundColor: '#6366f1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1a1a25',
+                                titleColor: '#f8fafc',
+                                bodyColor: '#94a3b8',
+                                borderColor: 'rgba(255,255,255,0.1)',
+                                borderWidth: 1,
+                                padding: 12,
+                                displayColors: false,
+                                callbacks: {
+                                    label: (ctx) => `${ctx.parsed.y.toLocaleString()}€`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#64748b', maxRotation: 0 }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: {
+                                    color: '#64748b',
+                                    callback: (v) => `${v}€`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartRef.current) {
+                        chartRef.current.destroy();
+                    }
+                };
+            }, [data]);
+
+            return (
+                <div className="chart-container">
+                    <canvas ref={canvasRef}></canvas>
+                </div>
+            );
+        });
+
+        // Breakdown Chart (Doughnut)
+        const BreakdownChart = memo(({ data }) => {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data?.length) return;
+
+                const ctx = canvasRef.current.getContext('2d');
+
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+
+                const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+                chartRef.current = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(d => d.name),
+                        datasets: [{
+                            data: data.map(d => d.value),
+                            backgroundColor: colors.slice(0, data.length),
+                            borderWidth: 0,
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: '#94a3b8',
+                                    padding: 16,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#1a1a25',
+                                titleColor: '#f8fafc',
+                                bodyColor: '#94a3b8',
+                                borderColor: 'rgba(255,255,255,0.1)',
+                                borderWidth: 1,
+                                padding: 12,
+                                callbacks: {
+                                    label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()}€`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartRef.current) {
+                        chartRef.current.destroy();
+                    }
+                };
+            }, [data]);
+
+            return (
+                <div className="chart-container">
+                    <canvas ref={canvasRef}></canvas>
+                </div>
+            );
+        });
+
+        // Navigation
+        const Navigation = memo(({ currentPage, onNavigate, notificationCount }) => {
+            const navItems = [
+                { id: 'overview', icon: '📊', label: 'Vue d\'ensemble' },
+                { id: 'sites', icon: '🌐', label: 'Sites' },
+                { id: 'analytics', icon: '📈', label: 'Analytics' },
+                { id: 'payments', icon: '💳', label: 'Paiements' },
+                { id: 'subscriptions', icon: '🔄', label: 'Abonnements' },
+                { id: 'monitoring', icon: '📡', label: 'Monitoring' },
+            ];
+
+            const settingsItems = [
+                { id: 'notifications', icon: '🔔', label: 'Notifications', badge: notificationCount },
+                { id: 'team', icon: '👥', label: 'Équipe' },
+                { id: 'settings', icon: '⚙️', label: 'Paramètres' },
+            ];
+
+            return (
+                <aside className="sidebar">
+                    <div className="logo">
+                        <div className="logo-icon">N</div>
+                        <span className="logo-text">NOTESO</span>
+                        <span className="logo-badge">PRO</span>
+                    </div>
+                    
+                    <nav className="nav">
+                        <div className="nav-section">
+                            <div className="nav-label">Principal</div>
+                            {navItems.map(item => (
+                                <div
+                                    key={item.id}
+                                    className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                                    onClick={() => onNavigate(item.id)}
+                                >
+                                    <span className="nav-icon">{item.icon}</span>
+                                    <span className="nav-text">{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="nav-section">
+                            <div className="nav-label">Paramètres</div>
+                            {settingsItems.map(item => (
+                                <div
+                                    key={item.id}
+                                    className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                                    onClick={() => onNavigate(item.id)}
+                                >
+                                    <span className="nav-icon">{item.icon}</span>
+                                    <span className="nav-text">{item.label}</span>
+                                    {item.badge > 0 && (
+                                        <span className="nav-badge">{item.badge}</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </nav>
+                </aside>
+            );
+        });
+
+        // Header
+        const Header = memo(({ title, onSearch }) => {
+            const [searchValue, setSearchValue] = useState('');
+            const debouncedSearch = useDebounce(searchValue);
+
+            useEffect(() => {
+                if (onSearch) onSearch(debouncedSearch);
+            }, [debouncedSearch, onSearch]);
+
+            return (
+                <header className="header">
+                    <div className="header-left">
+                        <h1 className="page-title">{title}</h1>
+                        <div className="live-indicator">
+                            <div className="live-dot"></div>
+                            <span>Temps réel</span>
+                        </div>
+                    </div>
+                    <div className="header-right">
+                        <div className="search-box">
+                            <span className="search-icon">🔍</span>
+                            <input
+                                type="text"
+                                placeholder="Rechercher..."
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                            />
+                            <span className="kbd">⌘K</span>
+                        </div>
+                        <button className="btn btn-secondary btn-icon">📄</button>
+                        <button className="btn btn-primary">+ Ajouter</button>
+                    </div>
+                </header>
+            );
+        });
+
+        // Overview Page
+        const OverviewPage = memo(() => {
+            const [data, setData] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const loadData = async () => {
+                    setLoading(true);
+                    try {
+                        // Parallel requests with cache
+                        const [overview, sites, activities, breakdown, revenue] = await Promise.all([
+                            cachedApi('/dashboard/overview'),
+                            cachedApi('/sites'),
+                            cachedApi('/activities?limit=8'),
+                            cachedApi('/analytics/breakdown'),
+                            cachedApi('/analytics/revenue?period=30d')
+                        ]);
+
+                        setData({ overview, sites, activities, breakdown, revenue });
+                    } catch (error) {
+                        console.error('Failed to load overview:', error);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                loadData();
+
+                // Auto-refresh every 30 seconds
+                const interval = setInterval(() => {
+                    cache.invalidate('/dashboard');
+                    cache.invalidate('/activities');
+                    loadData();
+                }, 30000);
+
+                return () => clearInterval(interval);
+            }, []);
+
+            const formatCurrency = useCallback((value) => {
+                return new Intl.NumberFormat('fr-FR', {
+                    style: 'currency',
+                    currency: 'EUR',
+                    maximumFractionDigits: 0
+                }).format(value || 0);
+            }, []);
+
+            return (
+                <>
+                    <Header title="Vue d'ensemble" />
+                    <div className="content">
+                        {/* Stats */}
+                        <div className="stats-grid">
+                            <StatCard
+                                icon="👥"
+                                iconClass="blue"
+                                value={data?.overview?.totalUsers?.toLocaleString() || '0'}
+                                label="Utilisateurs totaux"
+                                trend={data?.overview?.usersTrend}
+                                loading={loading}
+                            />
+                            <StatCard
+                                icon="💰"
+                                iconClass="green"
+                                value={formatCurrency(data?.overview?.totalRevenue)}
+                                label="Revenus totaux"
+                                trend={data?.overview?.revenueTrend}
+                                loading={loading}
+                            />
+                            <StatCard
+                                icon="💳"
+                                iconClass="yellow"
+                                value={data?.overview?.monthlyPayments?.toLocaleString() || '0'}
+                                label="Paiements ce mois"
+                                trend={data?.overview?.paymentsTrend}
+                                loading={loading}
+                            />
+                            <StatCard
+                                icon="📈"
+                                iconClass="purple"
+                                value={formatCurrency(data?.overview?.mrr)}
+                                label="MRR"
+                                loading={loading}
+                            />
+                        </div>
+
+                        {/* Charts & Sites */}
+                        <div className="grid-2" style={{ marginBottom: '20px' }}>
+                            <div className="card">
+                                <div className="card-header">
+                                    <h3 className="card-title">📈 Évolution des revenus</h3>
+                                    <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                                        30 jours
+                                    </button>
+                                </div>
+                                <div className="card-body">
+                                    {loading ? (
+                                        <Skeleton height="280px" />
+                                    ) : (
+                                        <RevenueChart data={data?.revenue || []} />
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <div className="card-header">
+                                    <h3 className="card-title">🥧 Répartition par site</h3>
+                                </div>
+                                <div className="card-body">
+                                    {loading ? (
+                                        <Skeleton height="280px" />
+                                    ) : (
+                                        <BreakdownChart data={data?.breakdown || []} />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid-2">
+                            {/* Sites */}
+                            <div className="card">
+                                <div className="card-header">
+                                    <h3 className="card-title">🌐 Sites ({data?.sites?.length || 0})</h3>
+                                    <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                                        Voir tout
+                                    </button>
+                                </div>
+                                <div className="card-body no-padding">
+                                    <div className="sites-list">
+                                        {loading ? (
+                                            Array(3).fill(0).map((_, i) => (
+                                                <div key={i} className="site-item">
+                                                    <Skeleton width="40px" height="40px" />
+                                                    <div style={{ flex: 1 }}>
+                                                        <Skeleton width="60%" height="16px" style={{ marginBottom: '8px' }} />
+                                                        <Skeleton width="40%" height="12px" />
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            data?.sites?.slice(0, 5).map(site => (
+                                                <SiteItem key={site.id} site={site} onClick={() => {}} />
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Activity */}
+                            <div className="card">
+                                <div className="card-header">
+                                    <h3 className="card-title">⚡ Activité récente</h3>
+                                </div>
+                                <div className="card-body no-padding">
+                                    {loading ? (
+                                        Array(5).fill(0).map((_, i) => (
+                                            <div key={i} className="activity-item">
+                                                <Skeleton width="36px" height="36px" style={{ borderRadius: '50%' }} />
+                                                <div style={{ flex: 1 }}>
+                                                    <Skeleton width="80%" height="14px" style={{ marginBottom: '6px' }} />
+                                                    <Skeleton width="30%" height="12px" />
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        data?.activities?.map((activity, i) => (
+                                            <ActivityItem key={activity.id || i} activity={activity} />
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            );
+        });
+
+        // Performance Monitor
+        const PerformanceMonitor = memo(() => {
+            const metrics = usePerformance();
+
+            return (
+                <div className="perf-indicator">
+                    <div className="perf-metric">
+                        <span className="label">FPS</span>
+                        <span className="value">{metrics.fps}</span>
+                    </div>
+                    <div className="perf-metric">
+                        <span className="label">API</span>
+                        <span className="value">{metrics.apiTime}ms</span>
+                    </div>
+                    <div className="perf-metric">
+                        <span className="label">Cache</span>
+                        <span className="value">{cache.cache.size}</span>
+                    </div>
+                </div>
+            );
+        });
+
+        // Main App
+        const App = () => {
+            const [currentPage, setCurrentPage] = useState('overview');
+            const [toasts, setToasts] = useState([]);
+            const [notificationCount, setNotificationCount] = useState(3);
+
+            const addToast = useCallback((message, type = 'success') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type }]);
+                setTimeout(() => {
+                    setToasts(prev => prev.filter(t => t.id !== id));
+                }, 4000);
+            }, []);
+
+            const removeToast = useCallback((id) => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            }, []);
+
+            const contextValue = useMemo(() => ({
+                addToast,
+                currentPage,
+                setCurrentPage
+            }), [addToast, currentPage]);
+
+            // Keyboard shortcuts
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                        e.preventDefault();
+                        document.querySelector('.search-box input')?.focus();
+                    }
+                };
+
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, []);
+
+            const renderPage = () => {
+                switch (currentPage) {
+                    case 'overview':
+                        return <OverviewPage />;
+                    default:
+                        return (
+                            <>
+                                <Header title={currentPage.charAt(0).toUpperCase() + currentPage.slice(1)} />
+                                <div className="content">
+                                    <div className="card">
+                                        <div className="card-body" style={{ textAlign: 'center', padding: '60px' }}>
+                                            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🚧</div>
+                                            <h3 style={{ marginBottom: '8px' }}>Page en construction</h3>
+                                            <p style={{ color: 'var(--text-secondary)' }}>
+                                                Cette page sera bientôt disponible.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        );
+                }
+            };
+
+            return (
+                <AppContext.Provider value={contextValue}>
+                    <div className="app">
+                        <Navigation
+                            currentPage={currentPage}
+                            onNavigate={setCurrentPage}
+                            notificationCount={notificationCount}
+                        />
+                        <main className="main">
+                            {renderPage()}
+                        </main>
+                        <ToastContainer toasts={toasts} onRemove={removeToast} />
+                        <PerformanceMonitor />
+                    </div>
+                </AppContext.Provider>
+            );
+        };
+
+        // Mount
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

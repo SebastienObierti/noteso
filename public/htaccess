@@ -1,8 +1,11 @@
 RewriteEngine On
 
-# Force HTTPS (décommenter si nécessaire)
-# RewriteCond %{HTTPS} off
-# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# =====================================================
+# HTACCESS CORRIGÉ POUR NOTESO
+# =====================================================
+# Le problème: Apache ne transmet pas PATH_INFO correctement
+# La solution: Passer la route en query string ?_route=xxx
+# =====================================================
 
 # Si le fichier ou dossier existe, le servir directement
 RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -10,6 +13,7 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 # API routes: /api/* -> api.php?_route=*
+# Exemple: /api/sites devient api.php?_route=sites
 RewriteCond %{REQUEST_URI} ^/api/(.*)$ [OR]
 RewriteCond %{REQUEST_URI} ^/api$
 RewriteRule ^api/?(.*)$ api.php?_route=$1 [L,QSA]
