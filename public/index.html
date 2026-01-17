@@ -3,26 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noteso - Dashboard</title>
+    <title>Noteso - Dashboard Multi-Tenant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
-                    }
-                }
-            }
+            theme: { extend: { colors: { dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' } } } }
         }
     </script>
     <style>
-        html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        html, body, #app { height: 100%; margin: 0; overflow: hidden; }
         body { font-family: 'Inter', system-ui, sans-serif; }
-        .stat-card:hover { transform: translateY(-2px); }
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -30,8 +23,8 @@
 <body class="dark bg-dark-950 text-white">
 
 <div id="app" class="h-full">
-    <!-- Login Screen -->
-    <div id="loginScreen" class="h-full flex items-center justify-center p-4">
+    <!-- Auth Screen -->
+    <div id="authScreen" class="h-full flex items-center justify-center p-4">
         <div class="bg-dark-900 rounded-2xl p-8 w-full max-w-md border border-slate-800">
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -41,48 +34,77 @@
                 <p class="text-slate-400 mt-2">Dashboard Multi-Sites</p>
             </div>
             
+            <!-- Tabs -->
+            <div class="flex mb-6 bg-dark-800 rounded-xl p-1">
+                <button id="tabLogin" onclick="showAuthTab('login')" class="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-500">Connexion</button>
+                <button id="tabRegister" onclick="showAuthTab('register')" class="flex-1 py-2 rounded-lg text-sm font-medium text-slate-400">Inscription</button>
+            </div>
+            
+            <!-- Login Form -->
             <form id="loginForm" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-2">Email</label>
-                    <input type="email" id="loginEmail" required
-                           class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                           placeholder="admin@example.com">
+                    <label class="block text-sm text-slate-400 mb-2">Email</label>
+                    <input type="email" id="loginEmail" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-2">Mot de passe</label>
-                    <input type="password" id="loginPassword" required
-                           class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                           placeholder="••••••••">
+                    <label class="block text-sm text-slate-400 mb-2">Mot de passe</label>
+                    <input type="password" id="loginPassword" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div id="totpField" class="hidden">
-                    <label class="block text-sm font-medium text-slate-400 mb-2">Code 2FA</label>
-                    <input type="text" id="loginTOTP" maxlength="6" pattern="[0-9]{6}"
-                           class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-center text-2xl tracking-widest"
-                           placeholder="000000">
+                    <label class="block text-sm text-slate-400 mb-2">Code 2FA</label>
+                    <input type="text" id="loginTOTP" maxlength="6" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none text-center text-2xl tracking-widest">
                 </div>
                 <div id="loginError" class="text-red-400 text-sm hidden"></div>
-                <button type="submit" id="loginBtn"
-                        class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold hover:opacity-90 flex items-center justify-center gap-2">
-                    <span>Se connecter</span>
-                </button>
+                <button type="submit" id="loginBtn" class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold">Se connecter</button>
+            </form>
+            
+            <!-- Register Form -->
+            <form id="registerForm" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-2">Nom de l'organisation</label>
+                    <input type="text" id="regOrg" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ma Startup">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-2">Prénom</label>
+                        <input type="text" id="regFirstName" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-2">Nom</label>
+                        <input type="text" id="regLastName" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-2">Email</label>
+                    <input type="email" id="regEmail" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-2">Mot de passe</label>
+                    <input type="password" id="regPassword" required minlength="8" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl outline-none">
+                </div>
+                <div id="registerError" class="text-red-400 text-sm hidden"></div>
+                <button type="submit" id="registerBtn" class="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl font-semibold">Créer mon compte</button>
+                <p class="text-xs text-slate-500 text-center">14 jours d'essai gratuit • Aucune carte requise</p>
             </form>
         </div>
     </div>
 
     <!-- Dashboard -->
     <div id="dashboard" class="hidden h-full">
-        <!-- Sidebar -->
         <aside class="fixed left-0 top-0 bottom-0 w-64 bg-dark-900 border-r border-slate-800 z-40 flex flex-col">
             <div class="p-6">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                         <i class="fas fa-chart-line"></i>
                     </div>
-                    <span class="font-bold text-xl">Noteso</span>
+                    <div>
+                        <span class="font-bold text-lg">Noteso</span>
+                        <div id="tenantBadge" class="text-xs text-slate-400 truncate max-w-[140px]"></div>
+                    </div>
                 </div>
             </div>
             
-            <nav class="flex-1 px-4 space-y-1">
+            <nav class="flex-1 px-4 space-y-1 overflow-auto">
                 <a href="#" data-page="dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-800">
                     <i class="fas fa-home w-5"></i><span>Dashboard</span>
                 </a>
@@ -98,9 +120,24 @@
                 <a href="#" data-page="subscriptions" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-800">
                     <i class="fas fa-sync w-5"></i><span>Abonnements</span>
                 </a>
+                
                 <div class="pt-4 mt-4 border-t border-slate-800">
+                    <a href="#" data-page="team" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-800">
+                        <i class="fas fa-user-friends w-5"></i><span>Équipe</span>
+                    </a>
+                    <a href="#" data-page="security" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-800">
+                        <i class="fas fa-shield-alt w-5"></i><span>Sécurité</span>
+                    </a>
                     <a href="#" data-page="settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-800">
                         <i class="fas fa-cog w-5"></i><span>Paramètres</span>
+                    </a>
+                </div>
+                
+                <!-- Super Admin Menu -->
+                <div id="superAdminMenu" class="hidden pt-4 mt-4 border-t border-slate-800">
+                    <p class="px-4 text-xs text-slate-500 uppercase mb-2">Super Admin</p>
+                    <a href="#" data-page="tenants" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-amber-400 hover:bg-dark-800">
+                        <i class="fas fa-building w-5"></i><span>Tenants</span>
                     </a>
                 </div>
             </nav>
@@ -114,16 +151,12 @@
                         <div id="userName" class="font-medium truncate text-sm">Admin</div>
                         <div id="userEmail" class="text-xs text-slate-400 truncate">admin@example.com</div>
                     </div>
-                    <button onclick="logout()" class="p-2 text-slate-400 hover:text-white" title="Déconnexion">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
+                    <button onclick="logout()" class="p-2 text-slate-400 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
             </div>
         </aside>
 
-        <!-- Main -->
         <main class="ml-64 h-full flex flex-col">
-            <!-- Header -->
             <header class="shrink-0 bg-dark-950 border-b border-slate-800 px-6 py-4">
                 <div class="flex items-center justify-between">
                     <div>
@@ -136,238 +169,359 @@
                             <option value="30d" selected>30 jours</option>
                             <option value="90d">90 jours</option>
                         </select>
-                        <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
+                        <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white"><i class="fas fa-sync-alt"></i></button>
                     </div>
                 </div>
             </header>
 
-            <!-- Content -->
             <div id="pageContent" class="flex-1 overflow-auto p-6">
-                
-                <!-- Dashboard Page -->
+                <!-- Dashboard -->
                 <div id="page-dashboard" class="page-content h-full flex flex-col gap-6">
-                    <!-- Stats -->
                     <div class="shrink-0 grid grid-cols-4 gap-4">
-                        <div class="stat-card bg-dark-900 rounded-xl p-4 border border-slate-800">
+                        <div class="bg-dark-900 rounded-xl p-4 border border-slate-800">
                             <div class="flex items-center justify-between mb-2">
-                                <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-euro-sign text-green-400"></i>
-                                </div>
+                                <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center"><i class="fas fa-euro-sign text-green-400"></i></div>
                                 <span id="revenueChange" class="text-green-400 text-xs">+0%</span>
                             </div>
                             <div id="revenueValue" class="text-2xl font-bold">0 €</div>
                             <div class="text-slate-400 text-xs">Revenus</div>
                         </div>
-                        <div class="stat-card bg-dark-900 rounded-xl p-4 border border-slate-800">
+                        <div class="bg-dark-900 rounded-xl p-4 border border-slate-800">
                             <div class="flex items-center justify-between mb-2">
-                                <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-users text-blue-400"></i>
-                                </div>
+                                <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center"><i class="fas fa-users text-blue-400"></i></div>
                                 <span id="usersChange" class="text-blue-400 text-xs">+0%</span>
                             </div>
                             <div id="usersValue" class="text-2xl font-bold">0</div>
                             <div class="text-slate-400 text-xs">Utilisateurs</div>
                         </div>
-                        <div class="stat-card bg-dark-900 rounded-xl p-4 border border-slate-800">
+                        <div class="bg-dark-900 rounded-xl p-4 border border-slate-800">
                             <div class="flex items-center justify-between mb-2">
-                                <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-credit-card text-purple-400"></i>
-                                </div>
+                                <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center"><i class="fas fa-credit-card text-purple-400"></i></div>
                             </div>
                             <div id="paymentsValue" class="text-2xl font-bold">0</div>
                             <div class="text-slate-400 text-xs">Paiements</div>
                         </div>
-                        <div class="stat-card bg-dark-900 rounded-xl p-4 border border-slate-800">
+                        <div class="bg-dark-900 rounded-xl p-4 border border-slate-800">
                             <div class="flex items-center justify-between mb-2">
-                                <div class="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-sync text-amber-400"></i>
-                                </div>
+                                <div class="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center"><i class="fas fa-sync text-amber-400"></i></div>
                             </div>
                             <div id="subsValue" class="text-2xl font-bold">0</div>
                             <div class="text-slate-400 text-xs">Abonnements</div>
                             <div id="mrrValue" class="text-slate-500 text-xs">MRR: 0 €</div>
                         </div>
                     </div>
-                    
-                    <!-- Chart & Activity -->
                     <div class="flex-1 min-h-0 grid grid-cols-3 gap-4">
                         <div class="col-span-2 bg-dark-900 rounded-xl p-4 border border-slate-800 flex flex-col">
                             <h3 class="text-sm font-semibold mb-2 shrink-0">Revenus</h3>
-                            <div class="flex-1 min-h-0 relative">
-                                <canvas id="revenueChart"></canvas>
-                            </div>
+                            <div class="flex-1 min-h-0"><canvas id="revenueChart"></canvas></div>
                         </div>
                         <div class="bg-dark-900 rounded-xl p-4 border border-slate-800 flex flex-col">
                             <h3 class="text-sm font-semibold mb-2 shrink-0">Activité récente</h3>
-                            <div id="activityList" class="flex-1 overflow-auto space-y-2 text-sm">
-                                <div class="text-slate-400 text-center py-4">Chargement...</div>
-                            </div>
+                            <div id="activityList" class="flex-1 overflow-auto space-y-2 text-sm"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sites Page -->
+                <!-- Sites -->
                 <div id="page-sites" class="page-content hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-semibold">Mes sites</h2>
-                        <button onclick="showAddSiteModal()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm flex items-center gap-2">
-                            <i class="fas fa-plus"></i>Ajouter
-                        </button>
+                        <button onclick="showModal('addSiteModal')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm"><i class="fas fa-plus mr-2"></i>Ajouter</button>
                     </div>
-                    <div id="sitesList" class="grid grid-cols-3 gap-4">
-                        <div class="text-slate-400 text-center py-8">Chargement...</div>
-                    </div>
+                    <div id="sitesList" class="grid grid-cols-3 gap-4"></div>
                 </div>
 
-                <!-- Users Page -->
+                <!-- Users -->
                 <div id="page-users" class="page-content hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-semibold">Utilisateurs</h2>
-                        <input type="text" id="userSearch" placeholder="Rechercher..."
-                               class="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-sm w-64">
+                        <input type="text" id="userSearch" placeholder="Rechercher..." class="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-sm w-64">
                     </div>
                     <div class="bg-dark-900 rounded-xl border border-slate-800 overflow-hidden">
                         <table class="w-full text-sm">
-                            <thead class="bg-dark-800">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Utilisateur</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Site</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="usersTableBody">
-                                <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Chargement...</td></tr>
-                            </tbody>
+                            <thead class="bg-dark-800"><tr><th class="px-4 py-3 text-left text-slate-400">Utilisateur</th><th class="px-4 py-3 text-left text-slate-400">Site</th><th class="px-4 py-3 text-left text-slate-400">Date</th></tr></thead>
+                            <tbody id="usersTableBody"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Payments Page -->
+                <!-- Payments -->
                 <div id="page-payments" class="page-content hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-semibold">Paiements</h2>
                         <select id="paymentStatus" class="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-sm">
-                            <option value="">Tous</option>
-                            <option value="completed">Complétés</option>
-                            <option value="pending">En attente</option>
-                            <option value="failed">Échoués</option>
+                            <option value="">Tous</option><option value="completed">Complétés</option><option value="pending">En attente</option><option value="failed">Échoués</option>
                         </select>
                     </div>
                     <div class="bg-dark-900 rounded-xl border border-slate-800 overflow-hidden">
                         <table class="w-full text-sm">
-                            <thead class="bg-dark-800">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Montant</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Statut</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Site</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Client</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="paymentsTableBody">
-                                <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Chargement...</td></tr>
-                            </tbody>
+                            <thead class="bg-dark-800"><tr><th class="px-4 py-3 text-left text-slate-400">Montant</th><th class="px-4 py-3 text-left text-slate-400">Statut</th><th class="px-4 py-3 text-left text-slate-400">Site</th><th class="px-4 py-3 text-left text-slate-400">Client</th><th class="px-4 py-3 text-left text-slate-400">Date</th></tr></thead>
+                            <tbody id="paymentsTableBody"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Subscriptions Page -->
+                <!-- Subscriptions -->
                 <div id="page-subscriptions" class="page-content hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-semibold">Abonnements</h2>
                         <select id="subStatus" class="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-sm">
-                            <option value="">Tous</option>
-                            <option value="active">Actifs</option>
-                            <option value="cancelled">Annulés</option>
+                            <option value="">Tous</option><option value="active">Actifs</option><option value="cancelled">Annulés</option>
                         </select>
                     </div>
                     <div class="bg-dark-900 rounded-xl border border-slate-800 overflow-hidden">
                         <table class="w-full text-sm">
-                            <thead class="bg-dark-800">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Plan</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Montant</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Statut</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Site</th>
-                                    <th class="px-4 py-3 text-left text-slate-400 font-medium">Renouvellement</th>
-                                </tr>
-                            </thead>
-                            <tbody id="subsTableBody">
-                                <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Chargement...</td></tr>
-                            </tbody>
+                            <thead class="bg-dark-800"><tr><th class="px-4 py-3 text-left text-slate-400">Plan</th><th class="px-4 py-3 text-left text-slate-400">Montant</th><th class="px-4 py-3 text-left text-slate-400">Statut</th><th class="px-4 py-3 text-left text-slate-400">Site</th><th class="px-4 py-3 text-left text-slate-400">Renouvellement</th></tr></thead>
+                            <tbody id="subsTableBody"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Settings Page -->
-                <div id="page-settings" class="page-content hidden">
-                    <h2 class="text-lg font-semibold mb-4">Paramètres</h2>
-                    <div class="max-w-lg bg-dark-900 rounded-xl p-6 border border-slate-800 space-y-4">
-                        <div>
-                            <label class="block text-sm text-slate-400 mb-2">Thème</label>
-                            <select id="settingTheme" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl">
-                                <option value="dark">Sombre</option>
-                                <option value="light">Clair</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm text-slate-400 mb-2">Devise</label>
-                            <select id="settingCurrency" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl">
-                                <option value="EUR">EUR (€)</option>
-                                <option value="USD">USD ($)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm text-slate-400 mb-2">Fuseau horaire</label>
-                            <select id="settingTimezone" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl">
-                                <option value="Europe/Paris">Europe/Paris</option>
-                                <option value="UTC">UTC</option>
-                            </select>
-                        </div>
-                        <button onclick="saveSettings()" class="w-full py-3 bg-blue-500 hover:bg-blue-600 rounded-xl">
-                            Enregistrer
-                        </button>
+                <!-- Team -->
+                <div id="page-team" class="page-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">Équipe</h2>
+                        <button onclick="showModal('addMemberModal')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm"><i class="fas fa-user-plus mr-2"></i>Inviter</button>
+                    </div>
+                    <div id="teamList" class="grid grid-cols-2 gap-4"></div>
+                    
+                    <!-- Tenant Info -->
+                    <div id="tenantInfo" class="mt-8 bg-dark-900 rounded-xl p-6 border border-slate-800">
+                        <h3 class="text-lg font-semibold mb-4">Mon organisation</h3>
+                        <div class="grid grid-cols-3 gap-6" id="tenantDetails"></div>
                     </div>
                 </div>
 
+                <!-- Settings -->
+                <div id="page-settings" class="page-content hidden">
+                    <h2 class="text-lg font-semibold mb-4">Paramètres</h2>
+                    <div class="max-w-lg bg-dark-900 rounded-xl p-6 border border-slate-800 space-y-4">
+                        <div><label class="block text-sm text-slate-400 mb-2">Thème</label><select id="settingTheme" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"><option value="dark">Sombre</option><option value="light">Clair</option></select></div>
+                        <div><label class="block text-sm text-slate-400 mb-2">Devise</label><select id="settingCurrency" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"><option value="EUR">EUR (€)</option><option value="USD">USD ($)</option></select></div>
+                        <div><label class="block text-sm text-slate-400 mb-2">Fuseau horaire</label><select id="settingTimezone" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"><option value="Europe/Paris">Europe/Paris</option><option value="UTC">UTC</option></select></div>
+                        <button onclick="saveSettings()" class="w-full py-3 bg-blue-500 hover:bg-blue-600 rounded-xl">Enregistrer</button>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div id="page-security" class="page-content hidden">
+                    <h2 class="text-lg font-semibold mb-6">Sécurité du compte</h2>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- 2FA Section -->
+                        <div class="bg-dark-900 rounded-xl p-6 border border-slate-800">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-shield-alt text-green-400"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">Authentification à deux facteurs</h3>
+                                    <p id="2faStatus" class="text-sm text-slate-400">Non activé</p>
+                                </div>
+                            </div>
+                            
+                            <div id="2faSetup" class="space-y-4">
+                                <p class="text-sm text-slate-400">Protégez votre compte avec une application d'authentification comme Google Authenticator ou Authy.</p>
+                                <button onclick="setup2FA()" class="w-full py-2 bg-green-500 hover:bg-green-600 rounded-lg text-sm">Activer le 2FA</button>
+                            </div>
+                            
+                            <div id="2faEnabled" class="hidden space-y-4">
+                                <p class="text-sm text-green-400"><i class="fas fa-check-circle mr-2"></i>2FA activé</p>
+                                <p id="backupCodesCount" class="text-sm text-slate-400"></p>
+                                <div class="flex gap-2">
+                                    <button onclick="showBackupCodes()" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">Codes de backup</button>
+                                    <button onclick="disable2FA()" class="flex-1 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm">Désactiver</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Password Section -->
+                        <div class="bg-dark-900 rounded-xl p-6 border border-slate-800">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-key text-blue-400"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">Mot de passe</h3>
+                                    <p id="passwordStatus" class="text-sm text-slate-400">Dernière modification: jamais</p>
+                                </div>
+                            </div>
+                            
+                            <form id="changePasswordForm" class="space-y-3">
+                                <input type="password" id="currentPassword" placeholder="Mot de passe actuel" required class="w-full px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-sm">
+                                <input type="password" id="newPassword" placeholder="Nouveau mot de passe" required minlength="8" class="w-full px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-sm">
+                                <input type="password" id="confirmPassword" placeholder="Confirmer le mot de passe" required class="w-full px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-sm">
+                                <button type="submit" class="w-full py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm">Changer le mot de passe</button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Active Sessions -->
+                    <div class="mt-6 bg-dark-900 rounded-xl p-6 border border-slate-800">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-desktop text-purple-400"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">Sessions actives</h3>
+                                    <p id="sessionCount" class="text-sm text-slate-400">0 appareil(s) connecté(s)</p>
+                                </div>
+                            </div>
+                            <button onclick="revokeAllSessions()" class="px-4 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm">Déconnecter tous les appareils</button>
+                        </div>
+                        <div id="sessionsList" class="space-y-2"></div>
+                    </div>
+                    
+                    <!-- Security Logs -->
+                    <div class="mt-6 bg-dark-900 rounded-xl p-6 border border-slate-800">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-history text-amber-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Historique de sécurité</h3>
+                                <p class="text-sm text-slate-400">Dernières activités sur votre compte</p>
+                            </div>
+                        </div>
+                        <div id="securityLogs" class="space-y-2 max-h-64 overflow-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Tenants (Super Admin) -->
+                <div id="page-tenants" class="page-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">Gestion des Tenants</h2>
+                    </div>
+                    <div class="bg-dark-900 rounded-xl border border-slate-800 overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-dark-800"><tr><th class="px-4 py-3 text-left text-slate-400">Organisation</th><th class="px-4 py-3 text-left text-slate-400">Plan</th><th class="px-4 py-3 text-left text-slate-400">Statut</th><th class="px-4 py-3 text-left text-slate-400">Sites</th><th class="px-4 py-3 text-left text-slate-400">Admins</th><th class="px-4 py-3 text-left text-slate-400">Actions</th></tr></thead>
+                            <tbody id="tenantsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 </div>
 
-<!-- Modal Add Site -->
+<!-- Modals -->
 <div id="addSiteModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-dark-900 rounded-xl p-6 w-full max-w-md border border-slate-800">
         <h3 class="text-lg font-bold mb-4">Ajouter un site</h3>
         <form id="addSiteForm" class="space-y-4">
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">Nom</label>
-                <input type="text" id="siteName" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl">
-            </div>
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">URL</label>
-                <input type="url" id="siteUrl" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl" placeholder="https://">
-            </div>
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">Couleur</label>
-                <input type="color" id="siteColor" value="#3b82f6" class="w-full h-12 bg-dark-800 border border-slate-700 rounded-xl cursor-pointer">
-            </div>
-            <div class="flex gap-3">
-                <button type="button" onclick="closeModal('addSiteModal')" class="flex-1 py-3 bg-slate-700 rounded-xl">Annuler</button>
-                <button type="submit" class="flex-1 py-3 bg-blue-500 rounded-xl">Créer</button>
-            </div>
+            <div><label class="block text-sm text-slate-400 mb-2">Nom</label><input type="text" id="siteName" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+            <div><label class="block text-sm text-slate-400 mb-2">URL</label><input type="url" id="siteUrl" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl" placeholder="https://"></div>
+            <div><label class="block text-sm text-slate-400 mb-2">Couleur</label><input type="color" id="siteColor" value="#3b82f6" class="w-full h-12 bg-dark-800 border border-slate-700 rounded-xl cursor-pointer"></div>
+            <div class="flex gap-3"><button type="button" onclick="closeModal('addSiteModal')" class="flex-1 py-3 bg-slate-700 rounded-xl">Annuler</button><button type="submit" class="flex-1 py-3 bg-blue-500 rounded-xl">Créer</button></div>
         </form>
     </div>
 </div>
 
-<!-- Toast -->
-<div id="toast" class="fixed bottom-4 right-4 bg-dark-900 border border-slate-700 rounded-xl p-4 shadow-xl transform translate-y-20 opacity-0 transition-all z-50">
-    <div class="flex items-center gap-3">
-        <i id="toastIcon" class="fas fa-check-circle text-green-400"></i>
-        <span id="toastMessage">Message</span>
+<div id="addMemberModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 rounded-xl p-6 w-full max-w-md border border-slate-800">
+        <h3 class="text-lg font-bold mb-4">Ajouter un membre</h3>
+        <form id="addMemberForm" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="block text-sm text-slate-400 mb-2">Prénom</label><input type="text" id="memberFirstName" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+                <div><label class="block text-sm text-slate-400 mb-2">Nom</label><input type="text" id="memberLastName" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+            </div>
+            <div><label class="block text-sm text-slate-400 mb-2">Email</label><input type="email" id="memberEmail" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+            <div><label class="block text-sm text-slate-400 mb-2">Mot de passe</label><input type="password" id="memberPassword" required class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+            <div><label class="block text-sm text-slate-400 mb-2">Rôle</label><select id="memberRole" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"><option value="viewer">Lecteur</option><option value="editor">Éditeur</option><option value="admin">Admin</option></select></div>
+            <div class="flex gap-3"><button type="button" onclick="closeModal('addMemberModal')" class="flex-1 py-3 bg-slate-700 rounded-xl">Annuler</button><button type="submit" class="flex-1 py-3 bg-blue-500 rounded-xl">Ajouter</button></div>
+        </form>
     </div>
+</div>
+
+<div id="editTenantModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 rounded-xl p-6 w-full max-w-md border border-slate-800">
+        <h3 class="text-lg font-bold mb-4">Modifier le tenant</h3>
+        <form id="editTenantForm" class="space-y-4">
+            <input type="hidden" id="editTenantId">
+            <div><label class="block text-sm text-slate-400 mb-2">Plan</label><select id="editTenantPlan" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"><option value="free">Free</option><option value="starter">Starter</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></div>
+            <div><label class="block text-sm text-slate-400 mb-2">Statut</label><select id="editTenantStatus" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"><option value="trial">Trial</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="cancelled">Cancelled</option></select></div>
+            <div class="grid grid-cols-3 gap-3">
+                <div><label class="block text-sm text-slate-400 mb-2">Max Sites</label><input type="number" id="editTenantMaxSites" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+                <div><label class="block text-sm text-slate-400 mb-2">Max Admins</label><input type="number" id="editTenantMaxAdmins" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+                <div><label class="block text-sm text-slate-400 mb-2">Max Users</label><input type="number" id="editTenantMaxUsers" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl"></div>
+            </div>
+            <div class="flex gap-3"><button type="button" onclick="closeModal('editTenantModal')" class="flex-1 py-3 bg-slate-700 rounded-xl">Annuler</button><button type="submit" class="flex-1 py-3 bg-blue-500 rounded-xl">Enregistrer</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- 2FA Setup Modal -->
+<div id="setup2FAModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 rounded-xl p-6 w-full max-w-md border border-slate-800">
+        <h3 class="text-lg font-bold mb-4">Configurer l'authentification à deux facteurs</h3>
+        <div id="setup2FAStep1">
+            <p class="text-sm text-slate-400 mb-4">Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)</p>
+            <div class="flex justify-center mb-4">
+                <img id="qrCodeImage" src="" alt="QR Code" class="rounded-lg">
+            </div>
+            <div class="bg-dark-800 rounded-lg p-3 mb-4">
+                <p class="text-xs text-slate-400 mb-1">Ou entrez ce code manuellement:</p>
+                <code id="secretKey" class="text-sm font-mono text-green-400 break-all"></code>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="verify2FACode" placeholder="Code à 6 chiffres" maxlength="6" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl text-center text-xl tracking-widest">
+                <div class="flex gap-3">
+                    <button onclick="closeModal('setup2FAModal')" class="flex-1 py-3 bg-slate-700 rounded-xl">Annuler</button>
+                    <button onclick="verify2FASetup()" class="flex-1 py-3 bg-green-500 rounded-xl">Vérifier</button>
+                </div>
+            </div>
+        </div>
+        <div id="setup2FAStep2" class="hidden">
+            <div class="text-center mb-4">
+                <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check text-3xl text-green-400"></i>
+                </div>
+                <h4 class="font-semibold text-lg">2FA activé avec succès!</h4>
+            </div>
+            <p class="text-sm text-slate-400 mb-4">Sauvegardez ces codes de récupération dans un endroit sûr. Ils vous permettront d'accéder à votre compte si vous perdez votre téléphone.</p>
+            <div id="backupCodesList" class="bg-dark-800 rounded-lg p-4 mb-4 grid grid-cols-2 gap-2 font-mono text-sm"></div>
+            <button onclick="closeModal('setup2FAModal'); loadSecurity();" class="w-full py-3 bg-blue-500 rounded-xl">J'ai sauvegardé mes codes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Codes Modal -->
+<div id="backupCodesModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 rounded-xl p-6 w-full max-w-md border border-slate-800">
+        <h3 class="text-lg font-bold mb-4">Codes de récupération</h3>
+        <p class="text-sm text-slate-400 mb-4">Ces codes peuvent être utilisés pour accéder à votre compte si vous perdez votre téléphone.</p>
+        <div class="mb-4">
+            <input type="password" id="backupCodesPassword" placeholder="Entrez votre mot de passe" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl">
+        </div>
+        <div id="backupCodesContent" class="hidden">
+            <div id="backupCodesDisplay" class="bg-dark-800 rounded-lg p-4 mb-4 grid grid-cols-2 gap-2 font-mono text-sm"></div>
+            <button onclick="regenerateBackupCodes()" class="w-full py-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg text-sm mb-3">Régénérer de nouveaux codes</button>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="closeModal('backupCodesModal')" class="flex-1 py-3 bg-slate-700 rounded-xl">Fermer</button>
+            <button id="showBackupCodesBtn" onclick="revealBackupCodes()" class="flex-1 py-3 bg-blue-500 rounded-xl">Afficher</button>
+        </div>
+    </div>
+</div>
+
+<!-- Disable 2FA Modal -->
+<div id="disable2FAModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 rounded-xl p-6 w-full max-w-md border border-slate-800">
+        <h3 class="text-lg font-bold mb-4 text-red-400">Désactiver le 2FA</h3>
+        <p class="text-sm text-slate-400 mb-4">Attention: cela réduira la sécurité de votre compte. Entrez votre mot de passe pour confirmer.</p>
+        <div class="space-y-3">
+            <input type="password" id="disable2FAPassword" placeholder="Mot de passe" class="w-full px-4 py-3 bg-dark-800 border border-slate-700 rounded-xl">
+            <div class="flex gap-3">
+                <button onclick="closeModal('disable2FAModal')" class="flex-1 py-3 bg-slate-700 rounded-xl">Annuler</button>
+                <button onclick="confirmDisable2FA()" class="flex-1 py-3 bg-red-500 rounded-xl">Désactiver</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="fixed bottom-4 right-4 bg-dark-900 border border-slate-700 rounded-xl p-4 shadow-xl transform translate-y-20 opacity-0 transition-all z-50">
+    <div class="flex items-center gap-3"><i id="toastIcon" class="fas fa-check-circle text-green-400"></i><span id="toastMessage"></span></div>
 </div>
 
 <script>
@@ -381,128 +535,85 @@ let pendingTOTP = false;
 async function api(action, data = {}, method = 'POST') {
     const params = new URLSearchParams({ action, ...data });
     const url = method === 'GET' ? `${API_URL}?${params}` : `${API_URL}?action=${action}`;
-    
-    const options = {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-            ...(authToken && { 'Authorization': `Bearer ${authToken}` })
-        }
-    };
-    
+    const options = { method, headers: { 'Content-Type': 'application/json', ...(authToken && { 'Authorization': `Bearer ${authToken}` }) } };
     if (method !== 'GET') options.body = JSON.stringify(data);
-    
     const response = await fetch(url, options);
     const result = await response.json();
-    
-    if (!response.ok) {
-        if (response.status === 401) logout();
-        throw new Error(result.error || 'Erreur');
-    }
+    if (!response.ok) { if (response.status === 401) logout(); throw new Error(result.error || 'Erreur'); }
     return result;
 }
 
 // Auth
+function showAuthTab(tab) {
+    document.getElementById('tabLogin').className = tab === 'login' ? 'flex-1 py-2 rounded-lg text-sm font-medium bg-blue-500' : 'flex-1 py-2 rounded-lg text-sm font-medium text-slate-400';
+    document.getElementById('tabRegister').className = tab === 'register' ? 'flex-1 py-2 rounded-lg text-sm font-medium bg-green-500' : 'flex-1 py-2 rounded-lg text-sm font-medium text-slate-400';
+    document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+}
+
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('loginBtn');
     const errorDiv = document.getElementById('loginError');
-    
-    btn.innerHTML = '<div class="spinner"></div>';
-    btn.disabled = true;
-    errorDiv.classList.add('hidden');
-    
+    btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true; errorDiv.classList.add('hidden');
     try {
-        const loginData = {
-            email: document.getElementById('loginEmail').value,
-            password: document.getElementById('loginPassword').value
-        };
-        
+        const loginData = { email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value };
         const totpCode = document.getElementById('loginTOTP').value;
         if (totpCode) loginData.totp_code = totpCode;
-        
         const result = await api('login', loginData);
-        
-        if (result.requires_2fa) {
-            pendingTOTP = true;
-            document.getElementById('totpField').classList.remove('hidden');
-            document.getElementById('loginTOTP').focus();
-            btn.innerHTML = '<span>Vérifier</span>';
-            btn.disabled = false;
-            return;
-        }
-        
-        authToken = result.token;
-        currentAdmin = result.admin;
-        localStorage.setItem('noteso_token', authToken);
-        pendingTOTP = false;
-        document.getElementById('totpField').classList.add('hidden');
-        showDashboard();
-    } catch (error) {
-        errorDiv.textContent = error.message;
-        errorDiv.classList.remove('hidden');
-        if (pendingTOTP) document.getElementById('loginTOTP').value = '';
-    } finally {
-        btn.innerHTML = pendingTOTP ? '<span>Vérifier</span>' : '<span>Se connecter</span>';
-        btn.disabled = false;
-    }
+        if (result.requires_2fa) { pendingTOTP = true; document.getElementById('totpField').classList.remove('hidden'); document.getElementById('loginTOTP').focus(); btn.innerHTML = 'Vérifier'; btn.disabled = false; return; }
+        authToken = result.token; currentAdmin = result.admin; localStorage.setItem('noteso_token', authToken);
+        pendingTOTP = false; document.getElementById('totpField').classList.add('hidden'); showDashboard();
+    } catch (error) { errorDiv.textContent = error.message; errorDiv.classList.remove('hidden'); if (pendingTOTP) document.getElementById('loginTOTP').value = ''; }
+    finally { btn.innerHTML = pendingTOTP ? 'Vérifier' : 'Se connecter'; btn.disabled = false; }
 });
 
-function logout() {
-    api('logout').catch(() => {});
-    authToken = null;
-    currentAdmin = null;
-    localStorage.removeItem('noteso_token');
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('dashboard').classList.add('hidden');
-}
-
-async function checkAuth() {
-    if (!authToken) return false;
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('registerBtn');
+    const errorDiv = document.getElementById('registerError');
+    btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true; errorDiv.classList.add('hidden');
     try {
-        currentAdmin = await api('me', {}, 'GET');
-        return true;
-    } catch { return false; }
-}
+        const result = await api('register', {
+            organization: document.getElementById('regOrg').value,
+            firstName: document.getElementById('regFirstName').value,
+            lastName: document.getElementById('regLastName').value,
+            email: document.getElementById('regEmail').value,
+            password: document.getElementById('regPassword').value
+        });
+        authToken = result.token; currentAdmin = result.admin; localStorage.setItem('noteso_token', authToken);
+        showToast('Compte créé ! Bienvenue sur Noteso'); showDashboard();
+    } catch (error) { errorDiv.textContent = error.message; errorDiv.classList.remove('hidden'); }
+    finally { btn.innerHTML = 'Créer mon compte'; btn.disabled = false; }
+});
+
+function logout() { api('logout').catch(() => {}); authToken = null; currentAdmin = null; localStorage.removeItem('noteso_token'); document.getElementById('authScreen').classList.remove('hidden'); document.getElementById('dashboard').classList.add('hidden'); }
+
+async function checkAuth() { if (!authToken) return false; try { currentAdmin = await api('me', {}, 'GET'); return true; } catch { return false; } }
 
 function showDashboard() {
-    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
     if (currentAdmin) {
         document.getElementById('userName').textContent = `${currentAdmin.firstName} ${currentAdmin.lastName}`;
         document.getElementById('userEmail').textContent = currentAdmin.email;
+        document.getElementById('tenantBadge').textContent = currentAdmin.tenant?.name || '';
+        document.getElementById('superAdminMenu').classList.toggle('hidden', !currentAdmin.isSuperAdmin);
     }
     navigateTo('dashboard');
 }
 
 // Navigation
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        navigateTo(link.dataset.page);
-    });
-});
+document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); navigateTo(link.dataset.page); }));
 
 function navigateTo(page) {
-    document.querySelectorAll('.nav-link').forEach(l => {
-        l.classList.remove('bg-dark-800', 'text-white');
-        l.classList.add('text-slate-300');
-    });
+    document.querySelectorAll('.nav-link').forEach(l => { l.classList.remove('bg-dark-800', 'text-white'); l.classList.add('text-slate-300'); });
     document.querySelector(`[data-page="${page}"]`)?.classList.add('bg-dark-800', 'text-white');
     document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
     document.getElementById(`page-${page}`)?.classList.remove('hidden');
-    
-    const titles = {
-        dashboard: ['Dashboard', 'Vue d\'ensemble'],
-        sites: ['Sites', 'Gérez vos sites'],
-        users: ['Utilisateurs', 'Liste des utilisateurs'],
-        payments: ['Paiements', 'Historique'],
-        subscriptions: ['Abonnements', 'Abonnements actifs'],
-        settings: ['Paramètres', 'Configuration']
-    };
+    const titles = { dashboard: ['Dashboard', 'Vue d\'ensemble'], sites: ['Sites', 'Gérez vos sites'], users: ['Utilisateurs', 'Liste'], payments: ['Paiements', 'Historique'], subscriptions: ['Abonnements', 'Actifs'], team: ['Équipe', 'Gérez votre équipe'], security: ['Sécurité', 'Protégez votre compte'], settings: ['Paramètres', 'Configuration'], tenants: ['Tenants', 'Super Admin'] };
     document.getElementById('pageTitle').textContent = titles[page]?.[0] || page;
     document.getElementById('pageSubtitle').textContent = titles[page]?.[1] || '';
-    
     loadPageData(page);
 }
 
@@ -513,7 +624,10 @@ async function loadPageData(page) {
         case 'users': await loadUsers(); break;
         case 'payments': await loadPayments(); break;
         case 'subscriptions': await loadSubscriptions(); break;
+        case 'team': await loadTeam(); break;
+        case 'security': await loadSecurity(); break;
         case 'settings': await loadSettings(); break;
+        case 'tenants': await loadTenants(); break;
     }
 }
 
@@ -522,69 +636,29 @@ async function loadDashboard() {
     try {
         const period = document.getElementById('periodSelector').value;
         const data = await api('dashboard', { period }, 'GET');
-        
         document.getElementById('revenueValue').textContent = formatCurrency(data.stats.revenue.value);
         document.getElementById('revenueChange').textContent = formatChange(data.stats.revenue.change);
         document.getElementById('revenueChange').className = data.stats.revenue.change >= 0 ? 'text-green-400 text-xs' : 'text-red-400 text-xs';
-        
         document.getElementById('usersValue').textContent = formatNumber(data.stats.users.value);
         document.getElementById('usersChange').textContent = formatChange(data.stats.users.change);
         document.getElementById('usersChange').className = data.stats.users.change >= 0 ? 'text-green-400 text-xs' : 'text-red-400 text-xs';
-        
         document.getElementById('paymentsValue').textContent = formatNumber(data.stats.payments.value);
         document.getElementById('subsValue').textContent = formatNumber(data.stats.subscriptions.value);
         document.getElementById('mrrValue').textContent = `MRR: ${formatCurrency(data.stats.subscriptions.mrr)}`;
-        
         updateChart(data.chart);
-        
         const activityList = document.getElementById('activityList');
-        if (data.activities.length === 0) {
-            activityList.innerHTML = '<div class="text-slate-400 text-center py-4">Aucune activité</div>';
-        } else {
-            activityList.innerHTML = data.activities.slice(0, 10).map(a => `
-                <div class="flex items-center gap-2 p-2 rounded hover:bg-dark-800">
-                    <div class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:${a.siteColor}20;color:${a.siteColor}">
-                        <i class="fas fa-${getActivityIcon(a.type)}"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="truncate text-xs">${a.description || a.type}</div>
-                        <div class="text-xs text-slate-500">${formatDate(a.createdAt)}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-    } catch (error) {
-        console.error(error);
-        showToast(error.message, 'error');
-    }
+        activityList.innerHTML = data.activities.length === 0 ? '<div class="text-slate-400 text-center py-4">Aucune activité</div>' :
+            data.activities.slice(0, 10).map(a => `<div class="flex items-center gap-2 p-2 rounded hover:bg-dark-800"><div class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:${a.siteColor}20;color:${a.siteColor}"><i class="fas fa-circle"></i></div><div class="flex-1 min-w-0"><div class="truncate text-xs">${a.description || a.type}</div><div class="text-xs text-slate-500">${formatDate(a.createdAt)}</div></div></div>`).join('');
+    } catch (error) { showToast(error.message, 'error'); }
 }
 
 function updateChart(chartData) {
     const ctx = document.getElementById('revenueChart');
     if (revenueChart) revenueChart.destroy();
-    
     revenueChart = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels: chartData.map(d => formatDateShort(d.date)),
-            datasets: [{
-                label: 'Revenus',
-                data: chartData.map(d => d.revenue || 0),
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59,130,246,0.1)',
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
-            }
-        }
+        data: { labels: chartData.map(d => formatDateShort(d.date)), datasets: [{ label: 'Revenus', data: chartData.map(d => d.revenue || 0), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } } } }
     });
 }
 
@@ -592,187 +666,347 @@ function updateChart(chartData) {
 async function loadSites() {
     try {
         const sites = await api('sites', {}, 'GET');
-        const container = document.getElementById('sitesList');
-        
-        if (sites.length === 0) {
-            container.innerHTML = '<div class="col-span-3 text-center py-12 text-slate-400">Aucun site</div>';
-            return;
-        }
-        
-        container.innerHTML = sites.map(s => `
-            <div class="bg-dark-900 rounded-xl p-4 border border-slate-800">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:${s.color}20">
-                        <i class="fas fa-globe" style="color:${s.color}"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-medium text-sm truncate">${s.name}</h3>
-                        <a href="${s.url}" target="_blank" class="text-xs text-slate-400 truncate block">${s.url}</a>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div><div class="font-bold">${s.userCount}</div><div class="text-slate-500">Users</div></div>
-                    <div><div class="font-bold">${s.paymentCount}</div><div class="text-slate-500">Paiements</div></div>
-                    <div><div class="font-bold">${formatCurrency(s.totalRevenue)}</div><div class="text-slate-500">Revenus</div></div>
-                </div>
-            </div>
-        `).join('');
+        document.getElementById('sitesList').innerHTML = sites.length === 0 ? '<div class="col-span-3 text-center py-12 text-slate-400">Aucun site</div>' :
+            sites.map(s => `<div class="bg-dark-900 rounded-xl p-4 border border-slate-800"><div class="flex items-center gap-3 mb-3"><div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:${s.color}20"><i class="fas fa-globe" style="color:${s.color}"></i></div><div class="flex-1 min-w-0"><h3 class="font-medium text-sm truncate">${s.name}</h3><a href="${s.url}" target="_blank" class="text-xs text-slate-400 truncate block">${s.url}</a></div></div><div class="grid grid-cols-3 gap-2 text-center text-xs"><div><div class="font-bold">${s.userCount}</div><div class="text-slate-500">Users</div></div><div><div class="font-bold">${s.paymentCount}</div><div class="text-slate-500">Paiements</div></div><div><div class="font-bold">${formatCurrency(s.totalRevenue)}</div><div class="text-slate-500">Revenus</div></div></div></div>`).join('');
     } catch (error) { showToast(error.message, 'error'); }
 }
 
-function showAddSiteModal() { document.getElementById('addSiteModal').classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
 document.getElementById('addSiteForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    try {
-        await api('sites', {
-            name: document.getElementById('siteName').value,
-            url: document.getElementById('siteUrl').value,
-            color: document.getElementById('siteColor').value
-        });
-        closeModal('addSiteModal');
-        document.getElementById('addSiteForm').reset();
-        showToast('Site créé');
-        loadSites();
-    } catch (error) { showToast(error.message, 'error'); }
+    try { await api('sites', { name: document.getElementById('siteName').value, url: document.getElementById('siteUrl').value, color: document.getElementById('siteColor').value }); closeModal('addSiteModal'); document.getElementById('addSiteForm').reset(); showToast('Site créé'); loadSites(); }
+    catch (error) { showToast(error.message, 'error'); }
 });
 
 // Users
 async function loadUsers() {
     try {
-        const search = document.getElementById('userSearch')?.value || '';
-        const data = await api('users', { search }, 'GET');
-        const tbody = document.getElementById('usersTableBody');
-        
-        if (data.users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Aucun utilisateur</td></tr>';
-            return;
-        }
-        
-        tbody.innerHTML = data.users.map(u => `
-            <tr class="border-t border-slate-800 hover:bg-dark-800/50">
-                <td class="px-4 py-3">
-                    <div class="font-medium">${u.name || 'Sans nom'}</div>
-                    <div class="text-xs text-slate-400">${u.email || '-'}</div>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="px-2 py-1 rounded text-xs" style="background:${u.siteColor}20;color:${u.siteColor}">${u.siteName}</span>
-                </td>
-                <td class="px-4 py-3 text-slate-400">${formatDate(u.createdAt)}</td>
-            </tr>
-        `).join('');
+        const data = await api('users', { search: document.getElementById('userSearch')?.value || '' }, 'GET');
+        document.getElementById('usersTableBody').innerHTML = data.users.length === 0 ? '<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Aucun utilisateur</td></tr>' :
+            data.users.map(u => `<tr class="border-t border-slate-800 hover:bg-dark-800/50"><td class="px-4 py-3"><div class="font-medium">${u.name || 'Sans nom'}</div><div class="text-xs text-slate-400">${u.email || '-'}</div></td><td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs" style="background:${u.siteColor}20;color:${u.siteColor}">${u.siteName}</span></td><td class="px-4 py-3 text-slate-400">${formatDate(u.createdAt)}</td></tr>`).join('');
     } catch (error) { showToast(error.message, 'error'); }
 }
-
 document.getElementById('userSearch')?.addEventListener('input', debounce(() => loadUsers(), 300));
 
 // Payments
 async function loadPayments() {
     try {
-        const status = document.getElementById('paymentStatus')?.value || '';
-        const data = await api('payments', { status }, 'GET');
-        const tbody = document.getElementById('paymentsTableBody');
-        
-        if (data.payments.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun paiement</td></tr>';
-            return;
-        }
-        
-        tbody.innerHTML = data.payments.map(p => `
-            <tr class="border-t border-slate-800 hover:bg-dark-800/50">
-                <td class="px-4 py-3 font-semibold">${formatCurrency(p.amount)}</td>
-                <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs ${getStatusClass(p.status)}">${p.status}</span></td>
-                <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs" style="background:${p.siteColor}20;color:${p.siteColor}">${p.siteName}</span></td>
-                <td class="px-4 py-3 text-slate-400">${p.userEmail || '-'}</td>
-                <td class="px-4 py-3 text-slate-400">${formatDate(p.createdAt)}</td>
-            </tr>
-        `).join('');
+        const data = await api('payments', { status: document.getElementById('paymentStatus')?.value || '' }, 'GET');
+        document.getElementById('paymentsTableBody').innerHTML = data.payments.length === 0 ? '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun paiement</td></tr>' :
+            data.payments.map(p => `<tr class="border-t border-slate-800 hover:bg-dark-800/50"><td class="px-4 py-3 font-semibold">${formatCurrency(p.amount)}</td><td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs ${getStatusClass(p.status)}">${p.status}</span></td><td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs" style="background:${p.siteColor}20;color:${p.siteColor}">${p.siteName}</span></td><td class="px-4 py-3 text-slate-400">${p.userEmail || '-'}</td><td class="px-4 py-3 text-slate-400">${formatDate(p.createdAt)}</td></tr>`).join('');
     } catch (error) { showToast(error.message, 'error'); }
 }
-
 document.getElementById('paymentStatus')?.addEventListener('change', loadPayments);
 
 // Subscriptions
 async function loadSubscriptions() {
     try {
-        const status = document.getElementById('subStatus')?.value || '';
-        const data = await api('subscriptions', { status }, 'GET');
-        const tbody = document.getElementById('subsTableBody');
+        const data = await api('subscriptions', { status: document.getElementById('subStatus')?.value || '' }, 'GET');
+        document.getElementById('subsTableBody').innerHTML = data.subscriptions.length === 0 ? '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun abonnement</td></tr>' :
+            data.subscriptions.map(s => `<tr class="border-t border-slate-800 hover:bg-dark-800/50"><td class="px-4 py-3 font-medium">${s.plan}</td><td class="px-4 py-3">${formatCurrency(s.amount)}/${s.billingCycle === 'yearly' ? 'an' : 'mois'}</td><td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs ${getStatusClass(s.status)}">${s.status}</span></td><td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs" style="background:${s.siteColor}20;color:${s.siteColor}">${s.siteName}</span></td><td class="px-4 py-3 text-slate-400">${s.currentPeriodEnd ? formatDate(s.currentPeriodEnd) : '-'}</td></tr>`).join('');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+document.getElementById('subStatus')?.addEventListener('change', loadSubscriptions);
+
+// Team
+async function loadTeam() {
+    try {
+        const [team, tenant] = await Promise.all([api('team', {}, 'GET'), api('tenant', {}, 'GET')]);
+        document.getElementById('teamList').innerHTML = team.map(m => `
+            <div class="bg-dark-900 rounded-xl p-4 border border-slate-800 flex items-center gap-4">
+                <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center"><i class="fas fa-user"></i></div>
+                <div class="flex-1"><div class="font-medium">${m.firstName} ${m.lastName}</div><div class="text-sm text-slate-400">${m.email}</div></div>
+                <span class="px-2 py-1 rounded text-xs ${m.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : m.role === 'editor' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-500/20 text-slate-400'}">${m.role}</span>
+            </div>
+        `).join('');
+        document.getElementById('tenantDetails').innerHTML = `
+            <div><div class="text-2xl font-bold">${tenant.usage.sites}/${tenant.limits.maxSites}</div><div class="text-slate-400 text-sm">Sites</div></div>
+            <div><div class="text-2xl font-bold">${tenant.usage.admins}/${tenant.limits.maxAdmins}</div><div class="text-slate-400 text-sm">Membres</div></div>
+            <div><div class="text-2xl font-bold">${tenant.usage.users}/${tenant.limits.maxUsers}</div><div class="text-slate-400 text-sm">Utilisateurs</div></div>
+            <div class="col-span-3 pt-4 border-t border-slate-800"><span class="text-slate-400">Plan:</span> <span class="font-semibold capitalize">${tenant.plan}</span> • <span class="text-slate-400">Statut:</span> <span class="${tenant.status === 'active' ? 'text-green-400' : tenant.status === 'trial' ? 'text-amber-400' : 'text-red-400'}">${tenant.status}</span>${tenant.trialEndsAt ? ` • Trial jusqu'au ${formatDate(tenant.trialEndsAt)}` : ''}</div>
+        `;
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+document.getElementById('addMemberForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await api('team', { firstName: document.getElementById('memberFirstName').value, lastName: document.getElementById('memberLastName').value, email: document.getElementById('memberEmail').value, password: document.getElementById('memberPassword').value, role: document.getElementById('memberRole').value }); closeModal('addMemberModal'); document.getElementById('addMemberForm').reset(); showToast('Membre ajouté'); loadTeam(); }
+    catch (error) { showToast(error.message, 'error'); }
+});
+
+// Security
+async function loadSecurity() {
+    try {
+        const [sessions, logs] = await Promise.all([
+            api('security/sessions', {}, 'GET'),
+            api('security/logs', {}, 'GET')
+        ]);
         
-        if (data.subscriptions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun abonnement</td></tr>';
-            return;
+        // Update 2FA status
+        const is2FAEnabled = currentAdmin?.security?.twoFactorEnabled;
+        document.getElementById('2faStatus').textContent = is2FAEnabled ? 'Activé' : 'Non activé';
+        document.getElementById('2faSetup').classList.toggle('hidden', is2FAEnabled);
+        document.getElementById('2faEnabled').classList.toggle('hidden', !is2FAEnabled);
+        
+        if (is2FAEnabled) {
+            const remaining = currentAdmin?.security?.backupCodesRemaining || 0;
+            document.getElementById('backupCodesCount').textContent = `${remaining} codes de récupération restants`;
         }
         
-        tbody.innerHTML = data.subscriptions.map(s => `
+        // Password status
+        const pwdChanged = currentAdmin?.security?.passwordChangedAt;
+        document.getElementById('passwordStatus').textContent = pwdChanged 
+            ? `Dernière modification: ${formatDate(pwdChanged)}`
+            : 'Jamais modifié';
+        
+        // Sessions
+        document.getElementById('sessionCount').textContent = `${sessions.length} appareil(s) connecté(s)`;
+        document.getElementById('sessionsList').innerHTML = sessions.map(s => `
+            <div class="flex items-center justify-between p-3 bg-dark-800 rounded-lg ${s.isCurrent ? 'border border-green-500/30' : ''}">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-${s.deviceType === 'mobile' ? 'mobile-alt' : s.deviceType === 'tablet' ? 'tablet-alt' : 'desktop'}"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium text-sm">${s.deviceName || 'Appareil inconnu'} ${s.isCurrent ? '<span class="text-green-400 text-xs">(actuel)</span>' : ''}</div>
+                        <div class="text-xs text-slate-400">${s.ip} • ${formatDate(s.lastActivityAt)}</div>
+                    </div>
+                </div>
+                ${!s.isCurrent ? `<button onclick="revokeSession('${s.id}')" class="text-red-400 hover:text-red-300 text-sm"><i class="fas fa-times"></i></button>` : ''}
+            </div>
+        `).join('');
+        
+        // Security logs
+        const eventTypes = {
+            'login_success': { icon: 'sign-in-alt', color: 'green', label: 'Connexion réussie' },
+            'login_failed': { icon: 'times-circle', color: 'red', label: 'Échec de connexion' },
+            '2fa_enabled': { icon: 'shield-alt', color: 'green', label: '2FA activé' },
+            '2fa_disabled': { icon: 'shield-alt', color: 'amber', label: '2FA désactivé' },
+            '2fa_failed': { icon: 'shield-alt', color: 'red', label: 'Code 2FA invalide' },
+            'password_changed': { icon: 'key', color: 'blue', label: 'Mot de passe modifié' },
+            'session_revoked': { icon: 'sign-out-alt', color: 'amber', label: 'Session révoquée' },
+            'all_sessions_revoked': { icon: 'sign-out-alt', color: 'amber', label: 'Toutes les sessions révoquées' },
+            'backup_code_used': { icon: 'key', color: 'amber', label: 'Code de backup utilisé' },
+            'backup_codes_regenerated': { icon: 'sync', color: 'blue', label: 'Codes de backup régénérés' },
+            'rate_limit_exceeded': { icon: 'ban', color: 'red', label: 'Limite de tentatives atteinte' }
+        };
+        
+        document.getElementById('securityLogs').innerHTML = logs.length === 0 
+            ? '<div class="text-slate-400 text-center py-4">Aucun événement</div>'
+            : logs.map(l => {
+                const e = eventTypes[l.type] || { icon: 'circle', color: 'slate', label: l.type };
+                return `
+                    <div class="flex items-center gap-3 p-2 rounded hover:bg-dark-800">
+                        <div class="w-8 h-8 bg-${e.color}-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-${e.icon} text-${e.color}-400 text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm">${e.label}</div>
+                            <div class="text-xs text-slate-500">${l.ip} • ${formatDate(l.createdAt)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+// 2FA Functions
+async function setup2FA() {
+    try {
+        const result = await api('security/2fa/setup', {});
+        document.getElementById('qrCodeImage').src = result.qrCode;
+        document.getElementById('secretKey').textContent = result.secret;
+        document.getElementById('setup2FAStep1').classList.remove('hidden');
+        document.getElementById('setup2FAStep2').classList.add('hidden');
+        document.getElementById('verify2FACode').value = '';
+        showModal('setup2FAModal');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function verify2FASetup() {
+    const code = document.getElementById('verify2FACode').value;
+    if (!code || code.length !== 6) {
+        showToast('Entrez un code à 6 chiffres', 'error');
+        return;
+    }
+    
+    try {
+        const result = await api('security/2fa/verify', { code });
+        document.getElementById('backupCodesList').innerHTML = result.backupCodes.map(c => 
+            `<div class="bg-dark-950 p-2 rounded text-center">${c}</div>`
+        ).join('');
+        document.getElementById('setup2FAStep1').classList.add('hidden');
+        document.getElementById('setup2FAStep2').classList.remove('hidden');
+        
+        // Mettre à jour currentAdmin
+        currentAdmin = await api('me', {}, 'GET');
+        
+        showToast('2FA activé avec succès!');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function disable2FA() {
+    document.getElementById('disable2FAPassword').value = '';
+    showModal('disable2FAModal');
+}
+
+async function confirmDisable2FA() {
+    const password = document.getElementById('disable2FAPassword').value;
+    if (!password) {
+        showToast('Entrez votre mot de passe', 'error');
+        return;
+    }
+    
+    try {
+        await api('security/2fa/disable', { password });
+        closeModal('disable2FAModal');
+        currentAdmin = await api('me', {}, 'GET');
+        loadSecurity();
+        showToast('2FA désactivé');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function showBackupCodes() {
+    document.getElementById('backupCodesPassword').value = '';
+    document.getElementById('backupCodesContent').classList.add('hidden');
+    document.getElementById('showBackupCodesBtn').classList.remove('hidden');
+    showModal('backupCodesModal');
+}
+
+async function revealBackupCodes() {
+    const password = document.getElementById('backupCodesPassword').value;
+    if (!password) {
+        showToast('Entrez votre mot de passe', 'error');
+        return;
+    }
+    
+    try {
+        const result = await api('security/2fa/backup-codes', { password });
+        document.getElementById('backupCodesDisplay').innerHTML = result.backupCodes.map(c => 
+            `<div class="bg-dark-950 p-2 rounded text-center">${c}</div>`
+        ).join('');
+        document.getElementById('backupCodesContent').classList.remove('hidden');
+        document.getElementById('showBackupCodesBtn').classList.add('hidden');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function regenerateBackupCodes() {
+    const password = document.getElementById('backupCodesPassword').value;
+    if (!confirm('Attention: les anciens codes seront invalidés. Continuer?')) return;
+    
+    try {
+        const result = await api('security/2fa/backup-codes', { password, regenerate: true });
+        document.getElementById('backupCodesDisplay').innerHTML = result.backupCodes.map(c => 
+            `<div class="bg-dark-950 p-2 rounded text-center">${c}</div>`
+        ).join('');
+        currentAdmin = await api('me', {}, 'GET');
+        showToast('Nouveaux codes générés');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+// Password
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (newPassword !== confirmPassword) {
+        showToast('Les mots de passe ne correspondent pas', 'error');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        showToast('Le mot de passe doit contenir au moins 8 caractères', 'error');
+        return;
+    }
+    
+    try {
+        await api('security/password', { currentPassword, newPassword });
+        document.getElementById('changePasswordForm').reset();
+        currentAdmin = await api('me', {}, 'GET');
+        loadSecurity();
+        showToast('Mot de passe modifié avec succès');
+    } catch (error) { showToast(error.message, 'error'); }
+});
+
+// Sessions
+async function revokeSession(sessionId) {
+    if (!confirm('Déconnecter cet appareil?')) return;
+    try {
+        await api('security/sessions/revoke', { sessionId });
+        loadSecurity();
+        showToast('Session révoquée');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function revokeAllSessions() {
+    if (!confirm('Déconnecter tous les appareils sauf celui-ci?')) return;
+    try {
+        await api('security/sessions/revoke', { sessionId: 'all' });
+        loadSecurity();
+        showToast('Toutes les sessions ont été révoquées');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+// Settings
+async function loadSettings() { try { const s = await api('settings', {}, 'GET'); document.getElementById('settingTheme').value = s.theme || 'dark'; document.getElementById('settingCurrency').value = s.currency || 'EUR'; document.getElementById('settingTimezone').value = s.timezone || 'Europe/Paris'; } catch {} }
+async function saveSettings() { try { await api('settings', { theme: document.getElementById('settingTheme').value, currency: document.getElementById('settingCurrency').value, timezone: document.getElementById('settingTimezone').value }, 'PUT'); showToast('Enregistré'); } catch (error) { showToast(error.message, 'error'); } }
+
+// Tenants (Super Admin)
+async function loadTenants() {
+    if (!currentAdmin?.isSuperAdmin) return;
+    try {
+        const tenants = await api('admin/tenants', {}, 'GET');
+        document.getElementById('tenantsTableBody').innerHTML = tenants.map(t => `
             <tr class="border-t border-slate-800 hover:bg-dark-800/50">
-                <td class="px-4 py-3 font-medium">${s.plan}</td>
-                <td class="px-4 py-3">${formatCurrency(s.amount)}/${s.billingCycle === 'yearly' ? 'an' : 'mois'}</td>
-                <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs ${getStatusClass(s.status)}">${s.status}</span></td>
-                <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs" style="background:${s.siteColor}20;color:${s.siteColor}">${s.siteName}</span></td>
-                <td class="px-4 py-3 text-slate-400">${s.currentPeriodEnd ? formatDate(s.currentPeriodEnd) : '-'}</td>
+                <td class="px-4 py-3"><div class="font-medium">${t.name}</div><div class="text-xs text-slate-400">${t.email}</div></td>
+                <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400">${t.plan}</span></td>
+                <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs ${t.status === 'active' ? 'bg-green-500/20 text-green-400' : t.status === 'trial' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}">${t.status}</span></td>
+                <td class="px-4 py-3">${t.siteCount}</td>
+                <td class="px-4 py-3">${t.adminCount}</td>
+                <td class="px-4 py-3"><button onclick="editTenant('${t.id}', '${t.plan}', '${t.status}')" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button></td>
             </tr>
         `).join('');
     } catch (error) { showToast(error.message, 'error'); }
 }
 
-document.getElementById('subStatus')?.addEventListener('change', loadSubscriptions);
-
-// Settings
-async function loadSettings() {
-    try {
-        const settings = await api('settings', {}, 'GET');
-        document.getElementById('settingTheme').value = settings.theme || 'dark';
-        document.getElementById('settingCurrency').value = settings.currency || 'EUR';
-        document.getElementById('settingTimezone').value = settings.timezone || 'Europe/Paris';
-    } catch (error) { console.error(error); }
+function editTenant(id, plan, status) {
+    document.getElementById('editTenantId').value = id;
+    document.getElementById('editTenantPlan').value = plan;
+    document.getElementById('editTenantStatus').value = status;
+    showModal('editTenantModal');
 }
 
-async function saveSettings() {
+document.getElementById('editTenantForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
     try {
-        await api('settings', {
-            theme: document.getElementById('settingTheme').value,
-            currency: document.getElementById('settingCurrency').value,
-            timezone: document.getElementById('settingTimezone').value
+        await api(`admin/tenants/${document.getElementById('editTenantId').value}`, {
+            plan: document.getElementById('editTenantPlan').value,
+            status: document.getElementById('editTenantStatus').value,
+            maxSites: parseInt(document.getElementById('editTenantMaxSites').value) || 1,
+            maxAdmins: parseInt(document.getElementById('editTenantMaxAdmins').value) || 1,
+            maxUsers: parseInt(document.getElementById('editTenantMaxUsers').value) || 100
         }, 'PUT');
-        showToast('Enregistré');
+        closeModal('editTenantModal'); showToast('Tenant mis à jour'); loadTenants();
     } catch (error) { showToast(error.message, 'error'); }
-}
-
-// Helpers
-function formatCurrency(amount, currency = 'EUR') {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount || 0);
-}
-function formatNumber(num) { return new Intl.NumberFormat('fr-FR').format(num || 0); }
-function formatChange(change) { return `${change >= 0 ? '+' : ''}${change}%`; }
-function formatDate(d) { return d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'; }
-function formatDateShort(d) { return d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '-'; }
-function getStatusClass(s) {
-    const c = { completed: 'bg-green-500/20 text-green-400', active: 'bg-green-500/20 text-green-400', pending: 'bg-yellow-500/20 text-yellow-400', failed: 'bg-red-500/20 text-red-400', cancelled: 'bg-slate-500/20 text-slate-400' };
-    return c[s] || 'bg-slate-500/20 text-slate-400';
-}
-function getActivityIcon(t) {
-    const i = { signup: 'user-plus', payment: 'credit-card', login: 'sign-in-alt', subscription: 'sync' };
-    return i[t] || 'circle';
-}
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    document.getElementById('toastMessage').textContent = message;
-    document.getElementById('toastIcon').className = type === 'success' ? 'fas fa-check-circle text-green-400' : 'fas fa-times-circle text-red-400';
-    toast.classList.remove('translate-y-20', 'opacity-0');
-    setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
-}
-function debounce(fn, wait) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; }
-function refreshData() { navigateTo(document.querySelector('.nav-link.bg-dark-800')?.dataset.page || 'dashboard'); showToast('Actualisé'); }
-
-document.getElementById('periodSelector').addEventListener('change', () => {
-    if (!document.getElementById('page-dashboard').classList.contains('hidden')) loadDashboard();
 });
 
-// Init
+// Helpers
+function formatCurrency(a, c = 'EUR') { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: c }).format(a || 0); }
+function formatNumber(n) { return new Intl.NumberFormat('fr-FR').format(n || 0); }
+function formatChange(c) { return `${c >= 0 ? '+' : ''}${c}%`; }
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'; }
+function formatDateShort(d) { return d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '-'; }
+function getStatusClass(s) { const c = { completed: 'bg-green-500/20 text-green-400', active: 'bg-green-500/20 text-green-400', pending: 'bg-yellow-500/20 text-yellow-400', failed: 'bg-red-500/20 text-red-400', cancelled: 'bg-slate-500/20 text-slate-400' }; return c[s] || 'bg-slate-500/20 text-slate-400'; }
+function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function showToast(msg, type = 'success') { const t = document.getElementById('toast'); document.getElementById('toastMessage').textContent = msg; document.getElementById('toastIcon').className = type === 'success' ? 'fas fa-check-circle text-green-400' : 'fas fa-times-circle text-red-400'; t.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); }
+function debounce(fn, wait) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; }
+function refreshData() { navigateTo(document.querySelector('.nav-link.bg-dark-800')?.dataset.page || 'dashboard'); showToast('Actualisé'); }
+document.getElementById('periodSelector').addEventListener('change', () => { if (!document.getElementById('page-dashboard').classList.contains('hidden')) loadDashboard(); });
+
 (async () => { if (await checkAuth()) showDashboard(); })();
 </script>
-
 </body>
 </html>
