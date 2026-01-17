@@ -1,12 +1,11 @@
 <?php
 /**
- * NOTESO - Configuration
- * Fichier de configuration pour MySQL 8
+ * NOTESO - Configuration MySQL 8
  */
 
 return [
     // ============================================
-    // BASE DE DONNÉES MYSQL
+    // BASE DE DONNÉES MYSQL 8
     // ============================================
     'database' => [
         'host'     => 'localhost',
@@ -23,7 +22,7 @@ return [
     'app' => [
         'name'     => 'Noteso',
         'url'      => 'https://noteso.fr',
-        'debug'    => false,  // Mettre à true pour le développement
+        'debug'    => true,  // Mettre à false en production
         'timezone' => 'Europe/Paris',
     ],
     
@@ -31,7 +30,7 @@ return [
     // SÉCURITÉ
     // ============================================
     'security' => [
-        'session_duration'    => 604800,  // 7 jours en secondes
+        'session_duration'    => 604800,  // 7 jours
         'max_login_attempts'  => 5,
         'lockout_duration'    => 900,     // 15 minutes
         'min_password_length' => 8,
@@ -49,7 +48,7 @@ return [
         'enabled'    => true,
         'host'       => 'mail.obierti.fr',
         'port'       => 465,
-        'encryption' => 'ssl',  // 'ssl' ou 'tls'
+        'encryption' => 'ssl',
         'username'   => 'contact@noteso.fr',
         'password'   => 'VOTRE_MOT_DE_PASSE_SMTP',
         'from_email' => 'contact@noteso.fr',
@@ -57,20 +56,12 @@ return [
     ],
     
     // ============================================
-    // LOGS
-    // ============================================
-    'logs' => [
-        'max_security_logs' => 10000,
-        'max_activity_logs' => 10000,
-    ],
-    
-    // ============================================
-    // ADMINS PAR DÉFAUT (utilisés lors de l'init)
+    // ADMIN PAR DÉFAUT
     // ============================================
     'admins' => [
         [
             'email'     => 'contact@obierti.fr',
-            'password'  => 'Admin123!',  // Changez immédiatement après la première connexion !
+            'password'  => 'Admin123!',
             'firstName' => 'Admin',
             'lastName'  => 'Principal',
             'role'      => 'super_admin',
